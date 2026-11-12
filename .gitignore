@@ -1,0 +1,16 @@
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/build/
+*.tsbuildinfo
+
+# Environment secrets
+**/.env
+**/.env.local
+
+# Logs
+*.log
+
+**/.vscode
