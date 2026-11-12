@@ -1,4 +1,4 @@
-# Project name
+# PanierFermier
 
 | Classification | |
 | --- | --- |
@@ -17,7 +17,61 @@
 | --- | --- | --- | --- |
 | 0.1 | | Template revision for Assignment 1 | |
 
-Generate the diagrams with `plantuml -tsvg REQUIREMENTS.md`.
+Generate the diagrams with [`plantuml -tsvg REQUIREMENTS.md`](https://plantuml.com/fr/).
+Generate the table of contents with [`md_toc --in-place --skip-lines 1 github REQUIREMENTS.md`](https://github.com/frnmst/md-toc).
+
+## Table of contents
+
+<!--TOC-->
+
+- [Table of contents](#table-of-contents)
+- [1. Project Goal or Product Vision](#1-project-goal-or-product-vision)
+- [2. Users and Scenarios](#2-users-and-scenarios)
+  - [2.1. Personas](#21-personas)
+    - [2.1.1. Clara Meylan — La consommatrice locale soucieuse de sa vie privée (Client)](#211-clara-meylan--la-consommatrice-locale-soucieuse-de-sa-vie-privée-client)
+    - [2. Marc Rochat — Le maraîcher et producteur polyvalent (Producteur)](#2-marc-rochat--le-maraîcher-et-producteur-polyvalent-producteur)
+    - [3. Sophie Baumann — La coordinatrice des opérations (Administratrice)](#3-sophie-baumann--la-coordinatrice-des-opérations-administratrice)
+  - [2.2. Scenarios](#22-scenarios)
+    - [Scénario 1](#scénario-1)
+    - [Scénario 2](#scénario-2)
+    - [Scénario 3](#scénario-3)
+    - [Scénario 4](#scénario-4)
+- [3. System Overview](#3-system-overview)
+  - [3.1. Information Flow Diagram](#31-information-flow-diagram)
+  - [3.2. Use Case Diagram(s)](#32-use-case-diagrams)
+- [4. Detailed Requirements](#4-detailed-requirements)
+  - [4.1. Functional Requirements](#41-functional-requirements)
+    - [4.1.1. Catégorie 1 - Découverte des fermes et commande de paniers (Client)](#411-catégorie-1---découverte-des-fermes-et-commande-de-paniers-client)
+      - [C1-F1 - Exploration carte](#c1-f1---exploration-carte)
+      - [C1-F2 - Consultation vitrine](#c1-f2---consultation-vitrine)
+      - [C1-F3 - Composition panier et paiement](#c1-f3---composition-panier-et-paiement)
+      - [C1-F4 - Acceptation ou refus offre](#c1-f4---acceptation-ou-refus-offre)
+      - [C1-F5 - Paiement en ligne garanti](#c1-f5---paiement-en-ligne-garanti)
+    - [4.1.2. Catégorie 2 - Gestion de la vitrine et traitement des paniers (Producteur)](#412-catégorie-2---gestion-de-la-vitrine-et-traitement-des-paniers-producteur)
+      - [C2-F1 - Création vitrine](#c2-f1---création-vitrine)
+      - [C2-F2 - Moyens de paiement](#c2-f2---moyens-de-paiement)
+      - [C2-F3 - Catalogue produits](#c2-f3---catalogue-produits)
+      - [C2-F4 - Mise à jour vitrine](#c2-f4---mise-à-jour-vitrine)
+      - [C2-F5 - Ajustement panier et offre](#c2-f5---ajustement-panier-et-offre)
+    - [4.1.3. Catégorie 3 - Administration, notifications et gestion financière (Système & Admin)](#413-catégorie-3---administration-notifications-et-gestion-financière-système--admin)
+      - [C3-F1 - Approbation ferme](#c3-f1---approbation-ferme)
+      - [C3-F2 - Notifications commande](#c3-f2---notifications-commande)
+      - [C3-F3 - Calcul prix et commission](#c3-f3---calcul-prix-et-commission)
+      - [C3-F4 - Libération fonds 7j](#c3-f4---libération-fonds-7j)
+      - [C3-F5 - Arbitrage litige](#c3-f5---arbitrage-litige)
+  - [4.2. Non-Functional Requirements](#42-non-functional-requirements)
+    - [4.2.1. Catégorie 1 - Confidentialité et Sécurité](#421-catégorie-1---confidentialité-et-sécurité)
+      - [C1-NF1 - Confidentialité](#c1-nf1---confidentialité)
+      - [C1-NF2 - Sécurité paiements](#c1-nf2---sécurité-paiements)
+    - [4.2.2. Catégorie 2 - Performance et Fiabilité](#422-catégorie-2---performance-et-fiabilité)
+      - [C2-NF1 - Performance carte](#c2-nf1---performance-carte)
+      - [C2-NF2 - Délai notifications](#c2-nf2---délai-notifications)
+    - [4.2.3. Catégorie 3 - Ergonomie](#423-catégorie-3---ergonomie)
+      - [C3-NF1 - Ergonomie vitrine](#c3-nf1---ergonomie-vitrine)
+- [5. System Architecture](#5-system-architecture)
+  - [5.1. Client–Server Architecture](#51-clientserver-architecture)
+
+<!--TOC-->
 
 ## 1. Project Goal or Product Vision
 
@@ -75,19 +129,19 @@ Les utilisateurs du système se répartissent en trois groupes distincts : les c
 
 #### Scénario 1
 
-Création, validation initiale et mise à jour d'une page ferme (Marc et Sophie) Marc s'inscrit sur la plateforme et configure la vitrine de son exploitation en renseignant sa bannière photo, une description, ses horaires d'ouverture, l'adresse obligatoire de la ferme ainsi que sa liste de produits disponibles (sans saisie de stock) (C2-F1). Il active également ses moyens de paiement autorisés : le paiement en ligne via la plateforme et le paiement sur place par TWINT ou espèces (C2-F2). Une fois enregistrée, sa page reste masquée du public (C2-F3). Sophie reçoit une alerte, vérifie l'existence de l'exploitation et approuve manuellement la page, qui devient immédiatement visible sur la carte (C2-F3). Deux semaines plus tard, Marc ajoute des fraises à sa liste et ajuste ses horaires d'été : ces modifications sont publiées instantanément sans nécessiter de nouvelle validation administrative (C2-F4)
+Création, validation initiale et mise à jour d'une page ferme (Marc et Sophie) Marc s'inscrit sur la plateforme et configure la vitrine de son exploitation en renseignant sa bannière photo, une description, ses horaires d'ouverture, l'adresse obligatoire de la ferme ainsi que sa liste de produits disponibles (sans saisie de stock) ([C2-F1](#c2-f1---création-vitrine)). Il active également ses moyens de paiement autorisés : le paiement en ligne via la plateforme et le paiement sur place par TWINT ou espèces ([C2-F2](#c2-f2---moyens-de-paiement)). Une fois enregistrée, sa page reste masquée du public ([C3-F1](#c3-f1---approbation-ferme)). Sophie reçoit une alerte, vérifie l'existence de l'exploitation et approuve manuellement la page, qui devient immédiatement visible sur la carte ([C3-F1](#c3-f1---approbation-ferme)). Deux semaines plus tard, Marc ajoute des fraises à sa liste et ajuste ses horaires d'été : ces modifications sont publiées instantanément sans nécessiter de nouvelle validation administrative ([C2-F4](#c2-f4---mise-à-jour-vitrine)).
 
 #### Scénario 2
 
-Recherche respectueuse de la vie privée et négociation d'un panier (Clara et Marc) Souhaitant préparer un repas local, Clara ouvre l'application et explore manuellement la carte interactive autour de Fribourg, sans qu'aucune donnée GPS ni adresse personnelle ne soit collectée ou stockée (C1-F1, C1-NF1). Elle sélectionne la ferme de Marc, consulte sa fiche (C1-F2) et compose un panier contenant des tomates, du fromage et un pot de miel, en optant pour le paiement en ligne garanti (C1-F3). Marc reçoit une notification (C3-F1). Constatant qu'il n'a plus de miel disponible, il retire cet article du panier et valide le prix ajusté proposé automatiquement par la plateforme, incluant la commission fixe (C2-F5). Clara est notifiée de cette contre-offre (C3-F2), l'accepte et procède au paiement en ligne (C1-F4, C1-F5). Le montant est placé en séquestre pour 7 jours, la commande devient ferme et non annulable, et Marc prépare le panier (C1-F5)
+Recherche respectueuse de la vie privée et négociation d'un panier (Clara et Marc) Souhaitant préparer un repas local, Clara ouvre l'application et explore manuellement la carte interactive autour de Fribourg, sans qu'aucune donnée GPS ni adresse personnelle ne soit collectée ou stockée ([C1-F1](#c1-f1---exploration-carte), [C1-NF1](#c1-nf1---confidentialité)). Elle sélectionne la ferme de Marc, consulte sa fiche ([C1-F2](#c1-f2---consultation-vitrine)) et compose un panier contenant des tomates, du fromage et un pot de miel, en optant pour le paiement en ligne garanti ([C1-F3](#c1-f3---composition-panier-et-paiement)). Marc reçoit une notification ([C3-F2](#c3-f2---notifications-commande)). Constatant qu'il n'a plus de miel disponible, il retire cet article du panier et valide le prix ajusté proposé automatiquement par la plateforme, incluant la commission fixe ([C2-F5](#c2-f5---ajustement-panier-et-offre)). Clara est notifiée de cette contre-offre ([C3-F2](#c3-f2---notifications-commande)), l'accepte et procède au paiement en ligne ([C1-F4](#c1-f4---acceptation-ou-refus-offre), [C1-F5](#c1-f5---paiement-en-ligne-garanti)). Le montant est placé en séquestre pour 7 jours, la commande devient ferme et non annulable, et Marc prépare le panier ([C1-F5](#c1-f5---paiement-en-ligne-garanti)).
 
 #### Scénario 3
 
-Réservation avec paiement direct à la ferme sans frais (Clara) Clara repère un second producteur proposant des pommes et du cidre, mais n'acceptant que le paiement à la ferme (Carte, TWINT ou Cash). Elle compose son panier et sélectionne le paiement sur place (C1-F3). Le producteur valide le panier sans modification (C2-F5) et Clara confirme la commande (C1-F4). Aucune commission n'est prélevée et aucune garantie financière n'est appliquée par la plateforme (C1-F6). Clara se rend à la ferme aux horaires indiqués et règle directement le producteur lors du retrait
+Réservation avec paiement direct à la ferme sans frais (Clara) Clara repère un second producteur proposant des pommes et du cidre, mais n'acceptant que le paiement à la ferme (Carte, TWINT ou Cash). Elle compose son panier et sélectionne le paiement sur place ([C1-F3](#c1-f3---composition-panier-et-paiement)). Le producteur valide le panier sans modification ([C2-F5](#c2-f5---ajustement-panier-et-offre)) et Clara confirme la commande ([C1-F4](#c1-f4---acceptation-ou-refus-offre)). Aucune commission n'est prélevée et aucune garantie financière n'est appliquée par la plateforme ([C3-F3](#c3-f3---calcul-prix-et-commission)). Clara se rend à la ferme aux horaires indiqués et règle directement le producteur lors du retrait.
 
 #### Scénario 4
 
-Gestion d'un litige durant la période de séquestre de 7 jours (Clara, Marc et Sophie) Dans le cadre d'une commande payée en ligne sur la plateforme, Clara se présente à la ferme aux horaires convenus mais trouve le point de vente fermé et injoignable. Dans le délai de 7 jours suivant son paiement, elle contacte l'administration via l'e-mail ou le numéro de support indiqué sur la plateforme pour déposer une plainte (C1-F7). Sophie instruit manuellement le dossier auprès des deux parties : constatant que le producteur n'a pas permis à la cliente de récupérer son panier comme promis, elle clôture le litige en déclenchant le remboursement intégral de Clara (C3-F3). (À l'inverse, si l'enquête montrait que Marc était présent et disponible mais que Clara avait omis de venir chercher sa commande non annulable, Sophie aurait libéré l'intégralité du paiement en faveur de Marc.)
+Gestion d'un litige durant la période de séquestre de 7 jours (Clara, Marc et Sophie) Dans le cadre d'une commande payée en ligne sur la plateforme, Clara se présente à la ferme aux horaires convenus mais trouve le point de vente fermé et injoignable. Dans le délai de 7 jours suivant son paiement, elle contacte l'administration via l'e-mail ou le numéro de support indiqué sur la plateforme pour déposer une plainte ([C3-F5](#c3-f5---arbitrage-litige)). Sophie instruit manuellement le dossier auprès des deux parties : constatant que le producteur n'a pas permis à la cliente de récupérer son panier comme promis, elle clôture le litige en déclenchant le remboursement intégral de Clara ([C3-F5](#c3-f5---arbitrage-litige)). (À l'inverse, si l'enquête montrait que Marc était présent et disponible mais que Clara avait omis de venir chercher sa commande non annulable, Sophie aurait libéré l'intégralité du paiement en faveur de Marc.)
 
 ## 3. System Overview
 
@@ -187,6 +241,7 @@ UC2 ..> UC5 : <<include>>
 
 </details>
 
+
 ## 4. Detailed Requirements
 
 *Group functional and non-functional requirements into categories. For Assignment 1, specify at least 15 functional requirements in three categories and at least five non-functional requirements in two or more categories. The few examples below illustrate formats, not the required quantity.*
@@ -199,40 +254,40 @@ UC2 ..> UC5 : <<include>>
 
 **Description de la catégorie :** Les consommateurs explorent les exploitations agricoles sur une carte, consultent leurs produits et composent des paniers à retirer à la ferme.
 
-##### Exigence C1-F1 - Exploration des fermes sur la carte interactive
+##### C1-F1 - Exploration carte
 
 | **ID** | `C1-F1` |
 | --- | --- |
-| **Name** | Exploration des fermes sur la carte interactive |
+| **Name** | Exploration carte |
 | **Short description** | Le système affiche une carte interactive permettant à tout visiteur (sans compte requis) de repérer les fermes approuvées dans la zone géographique affichée. |
 
-##### Exigence C1-F2 - Consultation de la vitrine d'une ferme
+##### C1-F2 - Consultation vitrine
 
 | **ID** | `C1-F2` |
 | --- | --- |
-| **Name** | Consultation de la vitrine d'une ferme |
+| **Name** | Consultation vitrine |
 | **Short description** | Le système affiche la page publique d'une ferme comprenant sa bannière photo, sa description, ses horaires d'ouverture, son adresse obligatoire, la liste des produits proposés et les moyens de paiement acceptés. |
 
-##### Exigence C1-F3 - Composition d'un panier et sélection du mode de paiement
+##### C1-F3 - Composition panier et paiement
 
 | **ID** | `C1-F3` |
 | --- | --- |
-| **Name** | Composition d'un panier et sélection du mode de paiement |
+| **Name** | Composition panier et paiement |
 | **Short description** | Un client authentifié compose un panier à partir des produits d'une ferme et choisit l'un des moyens de paiement autorisés par ce producteur. |
 | **Inputs** | Identifiant de la ferme, liste des produits sélectionnés avec quantités souhaitées, mode de paiement choisi (paiement en ligne sur la plateforme ou paiement à la ferme : Carte, TWINT, Cash). |
 | **Preconditions** | Le client est connecté à son compte ; la page de la ferme est approuvée et visible ; le panier contient au moins un article. |
-| **Rules / steps** | 1. Le système vérifie que tous les produits proviennent d'une seule et même ferme.<br/>2. Le système restreint le choix du paiement aux options activées par le producteur (`C2-F2`).<br/>3. Le système enregistre la demande avec le statut *"En attente de validation producteur"* et déclenche une notification (`C3-F2`). |
+| **Rules / steps** | 1. Le système vérifie que tous les produits proviennent d'une seule et même ferme.<br>2. Le système restreint le choix du paiement aux options activées par le producteur ([C2-F2](#c2-f2---moyens-de-paiement)).<br>3. Le système enregistre la demande avec le statut *"En attente de validation producteur"* et déclenche une notification ([C3-F2](#c3-f2---notifications-commande)). |
 | **Outputs** | Identifiant de demande de panier et estimation indicative du montant total. |
 | **Acceptance criteria** | Un panier valide est enregistré en base de données et transmis au producteur concerné ; toute tentative de soumettre un panier vide ou avec un mode de paiement non autorisé par la ferme est rejetée. |
 
-##### Exigence C1-F4 - Acceptation ou refus de l'offre ajustée du producteur
+##### C1-F4 - Acceptation ou refus offre
 
 | **ID** | `C1-F4` |
 | --- | --- |
-| **Name** | Acceptation ou refus de l'offre ajustée du producteur |
+| **Name** | Acceptation ou refus offre |
 | **Short description** | Le client examine le panier validé ou modifié par le producteur ainsi que le prix final proposé, puis décide d'accepter ou de rejeter l'offre. |
 | **Rules / constraints** | L'acceptation d'une offre engage fermement le client à retirer son panier ; aucune annulation unilatérale n'est autorisée après confirmation. |
-| **Acceptance criteria** | Si le client rejette l'offre, la demande passe au statut *"Annulée"* sans frais ; s'il l'accepte avec paiement sur place, la commande passe au statut *"Confirmée"* ; s'il l'accepte avec paiement en ligne, le flux de séquestre (`C1-F5`) est déclenché. |
+| **Acceptance criteria** | Si le client rejette l'offre, la demande passe au statut *"Annulée"* sans frais ; s'il l'accepte avec paiement sur place, la commande passe au statut *"Confirmée"* ; s'il l'accepte avec paiement en ligne, le flux de séquestre ([C1-F5](#c1-f5---paiement-en-ligne-garanti)) est déclenché. |
 | **Model** | ![c1-f4](assets/diagrams/c1-f4.svg) |
 
 <details>
@@ -277,15 +332,16 @@ deactivate App
 
 </details>
 
-##### Exigence C1-F5 - Paiement en ligne sécurisé avec séquestre de 7 jours
+
+##### C1-F5 - Paiement en ligne garanti
 
 | **ID** | `C1-F5` |
 | --- | --- |
-| **Name** | Paiement en ligne sécurisé avec sequester de 7 jours |
+| **Name** | Paiement en ligne garanti |
 | **Short description** | Lorsque le client opte pour le paiement en ligne et accepte l'offre, il règle le montant majoré de la commission fixe via le module hébergé de l'intermédiaire de paiement externe (ex. : Stripe), qui conserve les fonds en séquestre pendant 7 jours. |
-| **Inputs** | Identifiant du panier accepté, montant total incluant la commission fixe (`C3-F3`), jeton et confirmation (webhook) retournés par l'intermédiaire de paiement. |
-| **Preconditions** | Le producteur a activé le paiement en ligne avec un compte bénéficiaire valide (`C2-F2`) et validé l'offre (`C2-F5`) ; le client a accepté l'offre (`C1-F4`). |
-| **Rules / steps** | 1. Le système crée une intention de paiement auprès de l'API de l'intermédiaire externe avec rétention des fonds (séquestre / transfert différé de 7 jours).<br/>2. Le client saisit ses données de paiement (Carte ou TWINT) exclusivement sur l'interface sécurisée du prestataire.<br/>3. À réception de la confirmation du prestataire, la commande devient ferme et non annulable : le producteur doit préparer le panier et le client doit venir le retirer. |
+| **Inputs** | Identifiant du panier accepté, montant total incluant la commission fixe ([C3-F3](#c3-f3---calcul-prix-et-commission)), jeton et confirmation (webhook) retournés par l'intermédiaire de paiement. |
+| **Preconditions** | Le producteur a activé le paiement en ligne avec un compte bénéficiaire valide ([C2-F2](#c2-f2---moyens-de-paiement)) et validé l'offre ([C2-F5](#c2-f5---ajustement-panier-et-offre)) ; le client a accepté l'offre ([C1-F4](#c1-f4---acceptation-ou-refus-offre)). |
+| **Rules / steps** | 1. Le système crée une intention de paiement auprès de l'API de l'intermédiaire externe avec rétention des fonds (séquestre / transfert différé de 7 jours).<br>2. Le client saisit ses données de paiement (Carte ou TWINT) exclusivement sur l'interface sécurisée du prestataire.<br>3. À réception de la confirmation du prestataire, la commande devient ferme et non annulable : le producteur doit préparer le panier et le client doit venir le retirer. |
 | **Outputs** | Identifiant de transaction externe, reçu de paiement, date d'expiration du séquestre ($T_0 + 7\text{ jours}$) et coordonnées de support visibles en cas de litige. |
 | **Acceptance criteria** | Dès réception de la confirmation de l'intermédiaire de paiement, le statut de la commande passe à *"En séquestre (7j)"*, aucune donnée bancaire n'est stockée sur la plateforme, aucun bouton d'annulation n'est disponible et le producteur reçoit l'ordre de préparation. |
 
@@ -293,100 +349,100 @@ deactivate App
 
 **Description de la catégorie :** Les producteurs agricoles créent leur vitrine, définissent leurs conditions de vente et ajustent les demandes de paniers selon leurs disponibilités réelles.
 
-##### Exigence C2-F1 - Création initiale de la vitrine d'exploitation
+##### C2-F1 - Création vitrine
 
 | **ID** | `C2-F1` |
 | --- | --- |
-| **Name** | Création initiale de la vitrine d'exploitation |
-| **Short description** | Un producteur inscrit crée sa page ferme en saisissant obligatoirement l'adresse physique de l'exploitation, une bannière photo, une description et ses horaires d'ouverture ; la page reste masquée du public jusqu'à validation administrative (`C3-F1`). |
+| **Name** | Création vitrine |
+| **Short description** | Un producteur inscrit crée sa page ferme en saisissant obligatoirement l'adresse physique de l'exploitation, une bannière photo, une description et ses horaires d'ouverture ; la page reste masquée du public jusqu'à validation administrative ([C3-F1](#c3-f1---approbation-ferme)). |
 
-##### Exigence C2-F2 - Configuration des moyens de paiement autorisés
+##### C2-F2 - Moyens de paiement
 
 | **ID** | `C2-F2` |
 | --- | --- |
-| **Name** | Configuration des moyens de paiement autorisés |
+| **Name** | Moyens de paiement |
 | **Short description** | Le producteur sélectionne les modalités de règlement qu'il accepte : paiement en ligne délégué via l'intermédiaire de paiement de la plateforme (nécessitant l'association d'un compte bénéficiaire auprès du prestataire, tel que Stripe Connect, avec garantie et commission fixe) et/ou paiement direct à la ferme (Carte, TWINT, Cash, sans frais ni garantie). |
 
-##### Exigence C2-F3 - Gestion du catalogue de produits sans suivi de stock
+##### C2-F3 - Catalogue produits
 
 | **ID** | `C2-F3` |
 | --- | --- |
-| **Name** | Gestion du catalogue de produits sans suivi de stock |
+| **Name** | Catalogue produits |
 | **Short description** | Le producteur ajoute, modifie ou supprime des produits disponibles (nom, unité, prix unitaire) sur sa vitrine à tout moment, sans jamais avoir à saisir ou maintenir de quantités en stock. |
 
-##### Exigence C2-F4 - Publication immédiate des modifications d'une vitrine approuvée
+##### C2-F4 - Mise à jour vitrine
 
 | **ID** | `C2-F4` |
 | --- | --- |
-| **Name** | Publication immédiate des modifications d'une vitrine approuvée |
+| **Name** | Mise à jour vitrine |
 | **Short description** | Toute mise à jour apportée par un producteur à une page déjà validée par l'administration est publiée instantanément sans nouvelle approbation manuelle. |
 | **Inputs** | Modifications de la bannière photo, de la description, des horaires d'ouverture, de la liste des produits ou des moyens de paiement. |
 | **Preconditions** | Le compte du producteur est authentifié et sa vitrine possède déjà le statut *"Approuvée"*. |
-| **Rules / steps** | 1. Le système valide le format des champs modifiés (ex. : adresse non vide, prix positifs).<br/>2. Le système enregistre les nouvelles données et conserve le statut *"Approuvée"*.<br/>3. La vitrine reste visible sur la carte sans interruption. |
+| **Rules / steps** | 1. Le système valide le format des champs modifiés (ex. : adresse non vide, prix positifs).<br>2. Le système enregistre les nouvelles données et conserve le statut *"Approuvée"*.<br>3. La vitrine reste visible sur la carte sans interruption. |
 | **Outputs** | Confirmation d'enregistrement et mise à jour immédiate de la page publique de la ferme. |
 | **Acceptance criteria** | Lorsqu'un producteur approuvé modifie ses horaires ou ajoute un produit, le changement est visible par un visiteur en moins de 5 secondes sans intervention d'un administrateur. |
 
-##### Exigence C2-F5 - Ajustement d'un panier et validation de l'offre
+##### C2-F5 - Ajustement panier et offre
 
 | **ID** | `C2-F5` |
 | --- | --- |
-| **Name** | Ajustement d'un panier et validation de l'offre |
+| **Name** | Ajustement panier et offre |
 | **Short description** | À réception d'une demande de panier, le producteur peut retirer les articles indisponibles et valider le prix final proposé automatiquement par la plateforme. |
 | **Inputs** | Identifiant de la demande de panier, liste des articles conservés (suppression possible des articles manquants), confirmation du prix calculé. |
 | **Preconditions** | Une demande de panier au statut *"En attente de validation producteur"* existe pour cette exploitation. |
-| **Rules / steps** | 1. Le producteur consulte le panier demandé et retire, le cas échéant, un ou plusieurs produits indisponibles.<br/>2. Le système recalcule automatiquement le prix total en fonction des articles conservés et du mode de paiement choisi (`C3-F3`).<br/>3. Le producteur valide cette proposition, ce qui fait passer la demande au statut *"Offre soumise au client"* et notifie l'acheteur (`C3-F2`). |
+| **Rules / steps** | 1. Le producteur consulte le panier demandé et retire, le cas échéant, un ou plusieurs produits indisponibles.<br>2. Le système recalcule automatiquement le prix total en fonction des articles conservés et du mode de paiement choisi ([C3-F3](#c3-f3---calcul-prix-et-commission)).<br>3. Le producteur valide cette proposition, ce qui fait passer la demande au statut *"Offre soumise au client"* et notifie l'acheteur ([C3-F2](#c3-f2---notifications-commande)). |
 | **Outputs** | Panier mis à jour, prix final validé et notification envoyée au client. |
-| **Acceptance criteria** | Le producteur peut supprimer un article manquant d'un panier demandé, voir le prix ajusté se recalculer automatiquement et transmettre l'offre au client ; si tous les articles sont retirés, la demande est refuse. |
+| **Acceptance criteria** | Le producteur peut supprimer un article manquant d'un panier demandé, voir le prix ajusté se recalculer automatiquement et transmettre l'offre au client ; si tous les articles sont retirés, la demande est refusée. |
 
 #### 4.1.3. Catégorie 3 - Administration, notifications et gestion financière (Système & Admin)
 
 **Description de la catégorie :** Le système automatise les notifications et le calcul des commissions, tandis que l’administrateur contrôle l’entrée des producteurs et arbitre les litiges.
 
-##### Exigence C3-F1 - Approbation manuelle d’une nouvelle ferme
+##### C3-F1 - Approbation ferme
 
 | ID | `C3-F1` |
-| :---: | :--- |
-| **Name** | Approbation manuelle d’une nouvelle ferme |
-| **Short**      description | Un administrateur examine les nouvelles pages fermes créées et valide manuellement leur publication pour les rendre visibles sur la carte. |
+| --- | --- |
+| **Name** | Approbation ferme |
+| **Short description** | Un administrateur examine les nouvelles pages fermes créées et valide manuellement leur publication pour les rendre visibles sur la carte. |
 | **Inputs** | Identifiant de la ferme en attente, décision de l’administrateur (Approuver ou Rejeter). |
-| **Preconditions** | Un producteur a finalisé la création initiale de sa vitrine (C2-F1),  qui se trouve au statut "En attente d’approbation" (masquée du public). |
-| **Rules / steps** | 1. L’administrateur vérifie l’authenticité de l’exploitation et la validité de l’adresse saisie.</br>2 Si l’administrateur approuve la page, son statut passe à *"Approuvée"* et ses coordonnées géographiques apparaissent immédiatement sur la carte publique (`C1-F1`). </br>3. En cas de rejet, la vitrine reste masquée et le producteur est informé du motif. |
+| **Preconditions** | Un producteur a finalisé la création initiale de sa vitrine ([C2-F1](#c2-f1---cr%C3%A9ation-vitrine)), qui se trouve au statut "En attente d’approbation" (masquée du public). |
+| **Rules / steps** | 1. L’administrateur vérifie l’authenticité de l’exploitation et la validité de l’adresse saisie.2 Si l’administrateur approuve la page, son statut passe à *"Approuvée"* et ses coordonnées géographiques apparaissent immédiatement sur la carte publique ([C1-F1](#c1-f1---exploration-carte)). 3. En cas de rejet, la vitrine reste masquée et le producteur est informé du motif. |
 | **Outputs** | Mise à jour de la visibilité de la ferme sur la plateforme. |
 | **Acceptance criteria** | Une ferme nouvellement créée est invisible dans les recherches clients avant validation et devient consultable publiquement dès qu’un administrateur clique sur *"Approuver"*. |
 
-##### Exigence C3-F2 - Notification des événements de commande
+##### C3-F2 - Notifications commande
 
 | ID | `C3-F2` |
-| :---: | :--- |
-| **Name** | Notification des événements de commande |
+| --- | --- |
+| **Name** | Notifications commande |
 | **Short description** | Le système envoie automatiquement une notification au producteur lorsqu’un client crée un panier, puis au client lorsque le producteur valide ou ajuste ce panier. |
 
-##### Exigence C3-F3 - Calcul automatique du prix et de la commission fixe
+##### C3-F3 - Calcul prix et commission
 
 | ID | `C3-F3` |
-| :---: | :--- |
-| **Name** | Calcul  automatique du prix et de la commission fixe |
+| --- | --- |
+| **Name** | Calcul prix et commission |
 | **Short description** | Le système calcule automatiquement le prix du panier à partir des produits retenus en appliquant un taux de commission fixe uniquement lorsque le paiement en ligne est sélectionné. |
-| **Inputs** | Liste des produits retenus avec leurs prix unitaires, mode de paiement  choisi, taux de commission fixe paramétré sur la plateforme. |
-| **Rules / steps** | 1. Le système calcule le sous-total des produits $S = \sum (\text{prix}_i \times \text{quantité}_i)$.<br/>2. Si le mode de paiement est *"Paiement à la ferme"*, le montant final est égal à $S$ (commission $= 0$).<br/>3. Si le mode de paiement est *"Paiement en ligne"*, le montant final facturé au client est $M = S \times (1 + r)$, la part reversée au producteur étant $S$. |
+| **Inputs** | Liste des produits retenus avec leurs prix unitaires, mode de paiement choisi, taux de commission fixe paramétré sur la plateforme. |
+| **Rules / steps** | 1. Le système calcule le sous-total des produits $S = \sum (\text{prix}_i \times \text{quantité}_i)$.<br>2. Si le mode de paiement est *"Paiement à la ferme"*, le montant final est égal à $S$ (commission $= 0$).<br>3. Si le mode de paiement est *"Paiement en ligne"*, le montant final facturé au client est $M = S \times (1 + r)$, la part reversée au producteur étant $S$. |
 | **Outputs** | Sous-total producteur ($S$), montant de la commission et prix total client ($M$). |
 | **Acceptance criteria** | Pour un panier de 50 CHF et un taux fixe de 10 %, le système affiche 50 CHF sans frais pour un paiement sur place et 55 CHF pour un paiement en ligne. |
 
-##### Exigence C3-F4 - Libération automatique des fonds en séquestre après 7 jours
+##### C3-F4 - Libération fonds 7j
 
 | ID | `C3-F4` |
-| :---: | :--- |
-| **Name** | Libération automatique des fonds en séquestre après 7 jours |
+| --- | --- |
+| **Name** | Libération fonds 7j |
 | **Short description** | Si aucun litige n'est ouvert dans les 7 jours calendaires suivant un paiement en ligne, le système envoie automatiquement via l'API de l'intermédiaire de paiement l'instruction de transférer la part du producteur ($S$) vers son compte bénéficiaire et de prélever la commission fixe de la plateforme. |
 
-##### Exigence C3-F5 - Arbitrage manuel d’un litige de transaction
+##### C3-F5 - Arbitrage litige
 
 | ID | `C3-F5` |
-| :---: | :--- |
-| **Name** | Arbitrage manuel d’un litige de transaction |
+| --- | --- |
+| **Name** | Arbitrage litige |
 | **Short description** | Lorsqu'un client signale par e-mail ou téléphone (via les coordonnées affichées sur la plateforme) ne pas avoir pu obtenir son panier payé en ligne dans le délai de 7 jours, l'administrateur suspend le transfert automatique et tranche le litige via l'intermédiaire de paiement. |
 | **Rules / constraints** | L'administrateur ne peut clôturer un litige que selon deux issues exclusives exécutées via l'API de l'intermédiaire de paiement : (1) ordre de remboursement intégral du client si le producteur n'a pas fourni le panier comme promis, ou (2) ordre de libération des fonds au producteur si le client ne s'est pas présenté alors que le producteur a rempli ses obligations. |
-| **Acceptance criteria** | L'ouverture d'un litige bloque l'envoi de l'instruction automatique de transfert (`C3-F4`) ; l'issue (1) déclenche un remboursement complet auprès du prestataire (statut *"Client remboursé"*), tandis que l'issue (2) déclenche le virement vers le compte bénéficiaire du producteur (statut *"Fonds libérés"*). |
+| **Acceptance criteria** | L'ouverture d'un litige bloque l'envoi de l'instruction automatique de transfert ([C3-F4](#c3-f4---libération-fonds-7j)) ; l'issue (1) déclenche un remboursement complet auprès du prestataire (statut *"Client remboursé"*), tandis que l'issue (2) déclenche le virement vers le compte bénéficiaire du producteur (statut *"Fonds libérés"*). |
 | **Model** | ![c3-f5](assets/diagrams/c3-f5.svg) |
 
 <details>
@@ -424,47 +480,47 @@ Chaque exigence non fonctionnelle précise des critères d’acceptation mesurab
 
 #### 4.2.1. Catégorie 1 - Confidentialité et Sécurité
 
-##### Exigence C1-NF1 - Protection de la vie privée et non-collecte de la géolocalisation client
+##### C1-NF1 - Confidentialité
 
 | ID | `C1-NF1` |
-| :---: | :--- |
-| **Name** | Protection de la vie privée et non-collecte de la géolocalisation client |
+| --- | --- |
+| **Name** | Confidentialité |
 | **Description** | L’application ne doit ni demander l’accès au capteur GPS du terminal client, ni enregistrer d’adresse postale personnelle pour les consommateurs. |
-| **Measurable acceptance criterion** | Lors d’un audit des requêtes réseau et du schéma de base de données sur 100 sessions clients complètes (exploration de la carte et  commande), 0 permission GPS n’est sollicitée côté client et 0 donnée de localisation ou adresse personnelle d’acheteur n’est persistée sur les serveurs. |
+| **Measurable acceptance criterion** | Lors d’un audit des requêtes réseau et du schéma de base de données sur 100 sessions clients complètes (exploration de la carte et commande), 0 permission GPS n’est sollicitée côté client et 0 donnée de localisation ou adresse personnelle d’acheteur n’est persistée sur les serveurs. |
 
-##### **Exigence C1-NF2 - Sécurisation des paiements en ligne**
+##### C1-NF2 - Sécurité paiements
 
 | ID | `C1-NF2` |
-| :---: | :--- |
-| **Name** | Délégation et sécurisation des paiements en ligne |
+| --- | --- |
+| **Name** | Sécurité paiements |
 | **Description** | L'ensemble du traitement des transactions en ligne (carte bancaire, TWINT) ainsi que la rétention temporaire des fonds durant le séquestre de 7 jours doivent être intégralement délégués à un intermédiaire de paiement externe certifié PCI-DSS (tel que Stripe), sans qu'aucune donnée bancaire sensible ne transite en clair ni ne soit stockée sur les serveurs de la plateforme. |
 | **Measurable acceptance criterion** | Lors d'un audit technique et réseau portant sur 100 transactions en ligne (Carte et TWINT), 100 % des saisies de paiement s'effectuent via les composants hébergés du prestataire (ex. : Stripe Checkout/Elements), 100 % des échanges réseau utilisent le protocole TLS 1.3 minimum, et 0 donnée financière sensible (numéro de carte, CVV, identifiant bancaire) n'est enregistrée dans la base de données de la plateforme. |
 
 #### 4.2.2. Catégorie 2 - Performance et Fiabilité
 
-##### Exigence C2-NF1 - Temps de réponse de la carte interactive
+##### C2-NF1 - Performance carte
 
 | ID | `C2-NF1` |
-| :---: | :--- |
-| **Name** | Temps de réponse de la carte interactive |
+| --- | --- |
+| **Name** | Performance carte |
 | **Description** | L’affichage des fermes approuvées lors du déplacement ou du zoom sur la carte interactive doit s’effectuer rapidement en charge normale. |
 | **Measurable acceptance criterion** | Au moins 95 % de 1 000 requêtes de chargement de zone géographique aboutissent en moins de 1,5 seconde avec 200 utilisateurs simultanés sur une base de données contenant 1 000 fermes enregistrées. |
 
-##### Exigence C2-NF2 - Délai d’acheminement des notifications de négociation
+##### C2-NF2 - Délai notifications
 
 | ID | `C2-NF2` |
-| :---: | :--- |
-| **Name** | Délai d’acheminement des notifications de négociation |
+| --- | --- |
+| **Name** | Délai notifications |
 | **Description** | Les notifications lors de la soumission d’un panier ou de l’envoi d’une contre-offre par le fermier doivent être transmises sans délai notable. |
 | **Measurable acceptance criterion** | 99 % des notifications (push/e-mail) sont émises par le serveur vers le service de messagerie en moins de 5 secondes après l’action déclenchante, mesuré sur un échantillon de 500 transitions de panier. |
 
 #### 4.2.3. Catégorie 3 - Ergonomie
 
-##### Exigence C3-NF1 - Simplicité de configuration et de mise à jour de vitrine
+##### C3-NF1 - Ergonomie vitrine
 
 | ID | `C3-NF1` |
-| :---: | :--- |
-| **Name** | Simplicité de configuration et de mise à jour de vitrine |
+| --- | --- |
+| **Name** | Ergonomie vitrine |
 | **Description** | L’interface fermier doit permettre la création d’une vitrine et l’ajustement d’un panier sans formation préalable ni saisie complexe. |
 | **Measurable acceptance criterion** | Lors d'un test d'utilisabilité mené auprès de 10 producteurs sans assistance, au moins 90 % d'entre eux parviennent à créer une vitrine complète avec 5 produits en moins de 8 minutes, et à retirer un article d'un panier reçu en moins de 30 secondes. |
 
@@ -550,3 +606,4 @@ NotifSvc --> MsgAPI : Envoi notifications
 ```
 
 </details>
+
