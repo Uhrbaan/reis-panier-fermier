@@ -3,19 +3,19 @@
 | Classification | |
 | --- | --- |
 | Status | WIP |
-| Program name | |
-| Project number | |
-| Project manager | Project manager |
+| Program name | Requirements Engineering for Information Systems |
+| Project number | Assignment 1 |
+| Project manager | Han Kieu, Léonard Clément |
 | Version | 0.1 |
-| Date | Click here to enter a date |
-| Project sponsor | Project sponsor |
+| Date | 16.11.2026 |
+| Project sponsor | |
 | Author(s) | Han Kieu, Léonard Clément |
-| Distribution | |
-| List of changes | |
+| Distribution | Université de Fribourg |
+| List of changes | Initial specifications |
 
 | Version | Date | Change | Author |
 | --- | --- | --- | --- |
-| 0.1 | | Template revision for Assignment 1 | |
+| 0.1 | 16.11.2026 | Initial requirements submission | Han Kieu, Léonard Clément |
 
 Generate the diagrams with [`plantuml -tsvg REQUIREMENTS.md`](https://plantuml.com/fr/).
 Generate the table of contents with [`md_toc --in-place --skip-lines 1 github REQUIREMENTS.md`](https://github.com/frnmst/md-toc).
@@ -29,8 +29,8 @@ Generate the table of contents with [`md_toc --in-place --skip-lines 1 github RE
 - [2. Users and Scenarios](#2-users-and-scenarios)
   - [2.1. Personas](#21-personas)
     - [2.1.1. Clara Meylan — La consommatrice locale soucieuse de sa vie privée (Client)](#211-clara-meylan--la-consommatrice-locale-soucieuse-de-sa-vie-privée-client)
-    - [2. Marc Rochat — Le maraîcher et producteur polyvalent (Producteur)](#2-marc-rochat--le-maraîcher-et-producteur-polyvalent-producteur)
-    - [3. Sophie Baumann — La coordinatrice des opérations (Administratrice)](#3-sophie-baumann--la-coordinatrice-des-opérations-administratrice)
+    - [2.1.2 Marc Rochat — Le maraîcher et producteur polyvalent (Producteur)](#212-marc-rochat--le-maraîcher-et-producteur-polyvalent-producteur)
+    - [2.1.3. Sophie Baumann — La coordinatrice des opérations (Administratrice)](#213-sophie-baumann--la-coordinatrice-des-opérations-administratrice)
   - [2.2. Scenarios](#22-scenarios)
     - [Scénario 1](#scénario-1)
     - [Scénario 2](#scénario-2)
@@ -39,6 +39,7 @@ Generate the table of contents with [`md_toc --in-place --skip-lines 1 github RE
 - [3. System Overview](#3-system-overview)
   - [3.1. Information Flow Diagram](#31-information-flow-diagram)
   - [3.2. Use Case Diagram(s)](#32-use-case-diagrams)
+  - [3.3. Conceptual UML Class Diagram (Domain Model)](#33-conceptual-uml-class-diagram-domain-model)
 - [4. Detailed Requirements](#4-detailed-requirements)
   - [4.1. Functional Requirements](#41-functional-requirements)
     - [4.1.1. Catégorie 1 - Découverte des fermes et commande de paniers (Client)](#411-catégorie-1---découverte-des-fermes-et-commande-de-paniers-client)
@@ -79,7 +80,7 @@ Generate the table of contents with [`md_toc --in-place --skip-lines 1 github RE
 
 **WHO (Qui) :** Ont besoin d'un moyen simple et fiable pour localiser les exploitations à proximité et sécuriser les commandes à retirer sur place sans lourdeur logistique,
 
-**THE (La plateforme) :** **[Nom de votre plateforme]** est une application de découverte et de réservation de paniers producteurs locaux,
+**THE (La plateforme) :** **PanierFermier** est une application de découverte et de réservation de paniers producteurs locaux,
 
 **THAT (Qui) :** Permet aux clients de repérer les fermes sur une carte interactive respectueuse de leur vie privée et de composer un panier ajustable par le producteur avant validation, tout en offrant le choix entre un paiement libre à la ferme (sans frais) ou un paiement garanti par la plateforme (avec séquestre de 7 jours),
 
@@ -103,7 +104,7 @@ Les utilisateurs du système se répartissent en trois groupes distincts : les c
 
 **Besoins et contraintes :** Refuse de partager sa position GPS en continu ou d'enregistrer son adresse personnelle dans l'application. A besoin d'une confirmation claire avant de prendre la route et d'une garantie financière lorsqu'elle paie à l'avance.
 
-#### 2. Marc Rochat — Le maraîcher et producteur polyvalent (Producteur)
+#### 2.1.2 Marc Rochat — Le maraîcher et producteur polyvalent (Producteur)
 
 **Profil :** 48 ans, exploitant agricole dans le canton de Fribourg (légumes de saison, œufs, fromages).
 
@@ -113,7 +114,7 @@ Les utilisateurs du système se répartissent en trois groupes distincts : les c
 
 **Besoins et contraintes :** Ne veut pas gérer de quantités de stock sur la plateforme. A besoin de pouvoir retirer un article manquant d'un panier demandé par un client avant de s'engager, et souhaite pouvoir choisir librement entre encaisser ses clients sur place sans frais (Cash, Carte, TWINT) ou utiliser le paiement garanti de la plateforme.
 
-#### 3. Sophie Baumann — La coordinatrice des opérations (Administratrice)
+#### 2.1.3. Sophie Baumann — La coordinatrice des opérations (Administratrice)
 
 **Profil :** 29 ans, membre de l'équipe de gestion de la plateforme.
 
@@ -124,8 +125,6 @@ Les utilisateurs du système se répartissent en trois groupes distincts : les c
 **Besoins et contraintes :** Ne doit pas être sollicitée pour chaque modification courante effectuée par un producteur déjà approuvé (ajout d'un produit, changement d'horaire). A besoin d'un mécanisme administratif clair pour déclencher un remboursement au client ou libérer les fonds au producteur après examen d'une plainte.
 
 ### 2.2. Scenarios
-
-*Describe realistic situations in which a persona uses the system to achieve a goal. Link the scenarios to the requirements.*
 
 #### Scénario 1
 
@@ -147,8 +146,6 @@ Gestion d'un litige durant la période de séquestre de 7 jours (Clara, Marc et 
 
 ### 3.1. Information Flow Diagram
 
-*Show the principal information exchanges between users, the system and external services. Explain the important flows.*
-
 ![info-flow](assets/diagrams/info-flow.svg)
 
 <details>
@@ -160,40 +157,40 @@ skinparam nodesep 90
 skinparam ranksep 110
 skinparam defaultTextAlignment center
 
-actor "Client / Consommateur" as Client
-actor "Fermier / Producteur" as Producteur
+actor "Client" as Client
+actor "Producteur" as Producteur
 actor "Administrateur" as Admin
 
-rectangle "Plateforme de Vente Directe" {
+rectangle "Plateforme PanierFermier" {
     component "Système de Réservation\net Gestion" as Sys
 }
 
 cloud "Service de Paiement Externe\n(ex. Stripe / Stripe Connect)" as Paiement
 
 ' Flux d'informations : Client <-> Système
-Client -down-> Sys : 1. Recherche géographique (sans GPS)\n2. Création du panier & choix paiement\n3. Acceptation & confirmation paiement
-Sys -up-> Client : 1. Affichage fermes & produits\n2. Notification d'ajustement de panier
+Client -down-> Sys : 1. Recherche géographique (sans GPS)\n2. Demande de panier & choix paiement\n3. Acceptation / refus de l'offre
+Sys -up-> Client : 1. Affichage fermes & produits\n2. Notification d'offre ajustée
 
 ' Flux d'informations : Producteur <-> Système
-Producteur -down-> Sys : 1. Création / Modification vitrine\n2. Demande de publication vitrine\n3. Ajustement panier & validation offre
-Sys -up-> Producteur : 1. Notification de nouveau panier\n2. Confirmation commande ferme
+Producteur -down-> Sys : 1. Création / mise à jour vitrine\n2. Ajustement panier & validation offre
+Sys -up-> Producteur : 1. Notification de demande panier\n2. Confirmation commande ferme
 
 ' Flux d'informations : Admin <-> Système
-Admin -down-> Sys : Validation ferme /\nRésolution litige
-Sys -up-> Admin : Alerte nouvelle ferme /\nSignalement litige
+Admin -down-> Sys : 1. Approbation / rejet ferme\n2. Ouverture & arbitrage litige
+Sys -up-> Admin : Alerte nouvelle ferme en attente
 
 ' Flux d'informations : Système <-> Paiement
-Sys -down-> Paiement : 1. Demande d'autorisation & Séquestre (7j)\n2. Ordre de virement (ou remboursement)
-Paiement -up-> Sys : Webhook confirmation\nde transaction
+Sys -down-> Paiement : 1. Autorisation & séquestre (7j)\n2. Ordre de virement ou remboursement
+Paiement -up-> Sys : Webhooks confirmation\ntransaction & transfert
 
 @enduml
 ```
 
 </details>
 
-### 3.2. Use Case Diagram(s)
+Le **Client** interroge la carte sans transmettre de données GPS ([`C1-NF1`](#c1-nf1---confidentialité)) et soumet une demande de panier à un **Producteur**. Ce dernier est notifié, ajuste les articles selon ses stocks réels et renvoie une offre ferme. Si le paiement en ligne est choisi, le système délègue la transaction et la rétention de 7 jours au **Service de Paiement Externe** (Stripe), qui confirme l'opération par webhook. L'**Administrateur** reçoit une alerte uniquement lors de la création d'une nouvelle vitrine à valider ([`C3-F1`](#c3-f1---approbation-ferme)) et intervient manuellement sur le système lorsqu'un litige lui est signalé par e-mail ou téléphone ([`C3-F5`](#c3-f5---arbitrage-litige)).
 
-*Show the main system functionality with an overview Use Case Diagram. This is a deliberately small example; actual project diagrams may contain more actors, use cases and relationships. Detailed use cases related to individual requirements belong in Section 4.*
+### 3.2. Use Case Diagram(s)
 
 ![use-case](assets/diagrams/use-case.svg)
 
@@ -208,47 +205,145 @@ actor "Client" as Client
 actor "Producteur" as Producteur
 actor "Administrateur" as Admin
 
-rectangle "Plateforme de Vente Directe" {
+rectangle "Plateforme PanierFermier" {
     usecase "Explorer les fermes sur la carte" as UC1
-    usecase "Composer et réserver un panier" as UC2
-    usecase "Payer en ligne avec séquestre (7j)" as UC3
-    usecase "Gérer la page de la ferme" as UC4
-    usecase "Ajuster et valider un panier" as UC5
-    usecase "Valider une nouvelle exploitation" as UC6
-    usecase "Gérer un litige de paiement" as UC7
+    usecase "Consulter la vitrine d'une ferme" as UC2
+    usecase "Composer une demande de panier" as UC3
+    usecase "Accepter ou refuser une offre" as UC4
+    usecase "Payer en ligne avec séquestre (7j)" as UC5
+    usecase "Gérer la vitrine et le catalogue" as UC6
+    usecase "Ajuster et valider un panier" as UC7
+    usecase "Approuver une nouvelle ferme" as UC8
+    usecase "Arbitrer un litige de paiement" as UC9
 }
 
 ' Relations Client
 Client --> UC1
 Client --> UC2
 Client --> UC3
-Client --> UC7
+Client --> UC4
+Client --> UC5
 
 ' Relations Producteur
-Producteur --> UC4
-Producteur --> UC5
+Producteur --> UC6
 Producteur --> UC7
 
 ' Relations Admin
-Admin --> UC6
-Admin --> UC7
+Admin --> UC8
+Admin --> UC9
 
-' Relations entre cas d'utilisation
-UC2 ..> UC5 : <<include>>
+' Dépendances UML valides
+UC4 <.. UC5 : <<extend>>\n[paiement en ligne]
 
 @enduml
 ```
 
 </details>
 
+### 3.3. Conceptual UML Class Diagram (Domain Model)
+
+![domain-model](assets/diagrams/domain-model.svg)
+
+<details>
+
+```plantuml
+@startuml assets/diagrams/domain-model
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+
+class Utilisateur {
+  nom : String
+  email : String
+  motDePasseHash : String
+}
+
+class Client {
+  telephone : String
+}
+
+class Producteur {
+  idCompteStripe : String
+}
+
+class Administrateur {
+}
+
+class Ferme {
+  nom : String
+  description : String
+  adressePhysique : String
+  latitude : Decimal
+  longitude : Decimal
+  banniereUrl : String
+  horairesOuverture : String
+  statutApprobation : StatutFerme
+  acceptePaiementEnLigne : Boolean
+  acceptePaiementSurPlace : Boolean
+}
+
+class Produit {
+  nom : String
+  unite : String
+  prixUnitaire : Decimal
+  disponible : Boolean
+}
+
+class Panier {
+  dateCreation : DateTime
+  modePaiement : ModePaiement
+  statut : StatutPanier
+  sousTotalProducteur : Decimal
+  montantCommission : Decimal
+  montantTotalClient : Decimal
+}
+
+class LignePanier {
+  quantite : Integer
+  prixUnitaireFige : Decimal
+}
+
+class PaiementSequestre {
+  idTransactionExterne : String
+  datePaiement : DateTime
+  dateExpirationSequestre : DateTime
+  statutFonds : StatutSequestre
+}
+
+class Litige {
+  dateOuverture : DateTime
+  motif : String
+  decision : DecisionLitige
+  dateCloture : DateTime
+}
+
+Utilisateur <|-- Client
+Utilisateur <|-- Producteur
+Utilisateur <|-- Administrateur
+
+Producteur "1" -- "0..*" Ferme : exploite >
+Administrateur "1" -- "0..*" Ferme : approuve >
+Ferme "1" *-- "0..*" Produit : propose >
+
+Client "1" -- "0..*" Panier : passe >
+Ferme "1" -- "0..*" Panier : reçoit >
+Panier "1" *-- "1..*" LignePanier : contient >
+LignePanier "0..*" -- "1" Produit : référence >
+
+Panier "1" -- "0..1" PaiementSequestre : est garanti par >
+PaiementSequestre "1" -- "0..1" Litige : fait l'objet de >
+Administrateur "1" -- "0..*" Litige : arbitre >
+
+@enduml
+```
+
+</details>
+
+Le modèle représente les concepts métier centraux sans détails d'implémentation technique. Un `Producteur` exploite une ou plusieurs `Ferme`s, dont la visibilité dépend de `statutApprobation` validé par un `Administrateur`. Conformément à l'exigence de confidentialité ([`C1-NF1`](#c1-nf1---confidentialité)), la classe `Client` ne contient aucun attribut d'adresse postale ni de géolocalisation. Chaque `Panier` regroupe des `LignePanier` liées aux `Produit`s d'une seule ferme et donne lieu, uniquement en cas de paiement en ligne, à un `PaiementSequestre` de 7 jours pouvant être bloqué par un `Litige` arbitré par l'`Administrateur`.
 
 ## 4. Detailed Requirements
 
-*Group functional and non-functional requirements into categories. For Assignment 1, specify at least 15 functional requirements in three categories and at least five non-functional requirements in two or more categories. The few examples below illustrate formats, not the required quantity.*
-
 ### 4.1. Functional Requirements
-
-*Each requirement must include an ID, name and short description. Specify complex requirements in more detail using suitable textual fields from lecture L5 or established standards, and models where appropriate. Models may relate to one requirement or several requirements within a category; do not duplicate their content in text.*
 
 #### 4.1.1. Catégorie 1 - Découverte des fermes et commande de paniers (Client)
 
@@ -276,7 +371,7 @@ UC2 ..> UC5 : <<include>>
 | **Short description** | Un client authentifié compose un panier à partir des produits d'une ferme et choisit l'un des moyens de paiement autorisés par ce producteur. |
 | **Inputs** | Identifiant de la ferme, liste des produits sélectionnés avec quantités souhaitées, mode de paiement choisi (paiement en ligne sur la plateforme ou paiement à la ferme : Carte, TWINT, Cash). |
 | **Preconditions** | Le client est connecté à son compte ; la page de la ferme est approuvée et visible ; le panier contient au moins un article. |
-| **Rules / steps** | 1. Le système vérifie que tous les produits proviennent d'une seule et même ferme.<br>2. Le système restreint le choix du paiement aux options activées par le producteur ([C2-F2](#c2-f2---moyens-de-paiement)).<br>3. Le système enregistre la demande avec le statut *"En attente de validation producteur"* et déclenche une notification ([C3-F2](#c3-f2---notifications-commande)). |
+| **Rules / steps** | 1. Le système vérifie que tous les produits proviennent d'une seule et même ferme.<br>2. Le système restreint le choix du paiement aux options activées par le producteur ([`C2-F2`](#c2-f2---moyens-de-paiement)).<br>3. Le système enregistre la demande avec le statut *"En attente de validation producteur"* et déclenche une notification ([`C3-F2`](#c3-f2---notifications-commande)). |
 | **Outputs** | Identifiant de demande de panier et estimation indicative du montant total. |
 | **Acceptance criteria** | Un panier valide est enregistré en base de données et transmis au producteur concerné ; toute tentative de soumettre un panier vide ou avec un mode de paiement non autorisé par la ferme est rejetée. |
 
@@ -287,7 +382,7 @@ UC2 ..> UC5 : <<include>>
 | **Name** | Acceptation ou refus offre |
 | **Short description** | Le client examine le panier validé ou modifié par le producteur ainsi que le prix final proposé, puis décide d'accepter ou de rejeter l'offre. |
 | **Rules / constraints** | L'acceptation d'une offre engage fermement le client à retirer son panier ; aucune annulation unilatérale n'est autorisée après confirmation. |
-| **Acceptance criteria** | Si le client rejette l'offre, la demande passe au statut *"Annulée"* sans frais ; s'il l'accepte avec paiement sur place, la commande passe au statut *"Confirmée"* ; s'il l'accepte avec paiement en ligne, le flux de séquestre ([C1-F5](#c1-f5---paiement-en-ligne-garanti)) est déclenché. |
+| **Acceptance criteria** | Si le client rejette l'offre, la demande passe au statut *"Annulée"* sans frais ; s'il l'accepte avec paiement sur place, la commande passe au statut *"Confirmée"* ; s'il l'accepte avec paiement en ligne, le flux de séquestre ([`C1-F5`](#c1-f5---paiement-en-ligne-garanti)) est déclenché. |
 | **Model** | ![c1-f4](assets/diagrams/c1-f4.svg) |
 
 <details>
@@ -332,15 +427,14 @@ deactivate App
 
 </details>
 
-
 ##### C1-F5 - Paiement en ligne garanti
 
 | **ID** | `C1-F5` |
 | --- | --- |
 | **Name** | Paiement en ligne garanti |
 | **Short description** | Lorsque le client opte pour le paiement en ligne et accepte l'offre, il règle le montant majoré de la commission fixe via le module hébergé de l'intermédiaire de paiement externe (ex. : Stripe), qui conserve les fonds en séquestre pendant 7 jours. |
-| **Inputs** | Identifiant du panier accepté, montant total incluant la commission fixe ([C3-F3](#c3-f3---calcul-prix-et-commission)), jeton et confirmation (webhook) retournés par l'intermédiaire de paiement. |
-| **Preconditions** | Le producteur a activé le paiement en ligne avec un compte bénéficiaire valide ([C2-F2](#c2-f2---moyens-de-paiement)) et validé l'offre ([C2-F5](#c2-f5---ajustement-panier-et-offre)) ; le client a accepté l'offre ([C1-F4](#c1-f4---acceptation-ou-refus-offre)). |
+| **Inputs** | Identifiant du panier accepté, montant total incluant la commission fixe ([`C3-F3`](#c3-f3---calcul-prix-et-commission)), jeton et confirmation (webhook) retournés par l'intermédiaire de paiement. |
+| **Preconditions** | Le producteur a activé le paiement en ligne avec un compte bénéficiaire valide ([`C2-F2`](#c2-f2---moyens-de-paiement)) et validé l'offre ([`C2-F5`](#c2-f5---ajustement-panier-et-offre)) ; le client a accepté l'offre ([C1-F4](#c1-f4---acceptation-ou-refus-offre)). |
 | **Rules / steps** | 1. Le système crée une intention de paiement auprès de l'API de l'intermédiaire externe avec rétention des fonds (séquestre / transfert différé de 7 jours).<br>2. Le client saisit ses données de paiement (Carte ou TWINT) exclusivement sur l'interface sécurisée du prestataire.<br>3. À réception de la confirmation du prestataire, la commande devient ferme et non annulable : le producteur doit préparer le panier et le client doit venir le retirer. |
 | **Outputs** | Identifiant de transaction externe, reçu de paiement, date d'expiration du séquestre ($T_0 + 7\text{ jours}$) et coordonnées de support visibles en cas de litige. |
 | **Acceptance criteria** | Dès réception de la confirmation de l'intermédiaire de paiement, le statut de la commande passe à *"En séquestre (7j)"*, aucune donnée bancaire n'est stockée sur la plateforme, aucun bouton d'annulation n'est disponible et le producteur reçoit l'ordre de préparation. |
@@ -354,7 +448,7 @@ deactivate App
 | **ID** | `C2-F1` |
 | --- | --- |
 | **Name** | Création vitrine |
-| **Short description** | Un producteur inscrit crée sa page ferme en saisissant obligatoirement l'adresse physique de l'exploitation, une bannière photo, une description et ses horaires d'ouverture ; la page reste masquée du public jusqu'à validation administrative ([C3-F1](#c3-f1---approbation-ferme)). |
+| **Short description** | Un producteur inscrit crée sa page ferme en saisissant obligatoirement l'adresse physique de l'exploitation, une bannière photo, une description et ses horaires d'ouverture ; la page reste masquée du public jusqu'à validation administrative ([`C3-F1`](#c3-f1---approbation-ferme)). |
 
 ##### C2-F2 - Moyens de paiement
 
@@ -390,7 +484,7 @@ deactivate App
 | **Short description** | À réception d'une demande de panier, le producteur peut retirer les articles indisponibles et valider le prix final proposé automatiquement par la plateforme. |
 | **Inputs** | Identifiant de la demande de panier, liste des articles conservés (suppression possible des articles manquants), confirmation du prix calculé. |
 | **Preconditions** | Une demande de panier au statut *"En attente de validation producteur"* existe pour cette exploitation. |
-| **Rules / steps** | 1. Le producteur consulte le panier demandé et retire, le cas échéant, un ou plusieurs produits indisponibles.<br>2. Le système recalcule automatiquement le prix total en fonction des articles conservés et du mode de paiement choisi ([C3-F3](#c3-f3---calcul-prix-et-commission)).<br>3. Le producteur valide cette proposition, ce qui fait passer la demande au statut *"Offre soumise au client"* et notifie l'acheteur ([C3-F2](#c3-f2---notifications-commande)). |
+| **Rules / steps** | 1. Le producteur consulte le panier demandé et retire, le cas échéant, un ou plusieurs produits indisponibles.<br>2. Le système recalcule automatiquement le prix total en fonction des articles conservés et du mode de paiement choisi ([`C3-F3`](#c3-f3---calcul-prix-et-commission)).<br>3. Le producteur valide cette proposition, ce qui fait passer la demande au statut *"Offre soumise au client"* et notifie l'acheteur ([`C3-F2`](#c3-f2---notifications-commande)). |
 | **Outputs** | Panier mis à jour, prix final validé et notification envoyée au client. |
 | **Acceptance criteria** | Le producteur peut supprimer un article manquant d'un panier demandé, voir le prix ajusté se recalculer automatiquement et transmettre l'offre au client ; si tous les articles sont retirés, la demande est refusée. |
 
@@ -405,8 +499,8 @@ deactivate App
 | **Name** | Approbation ferme |
 | **Short description** | Un administrateur examine les nouvelles pages fermes créées et valide manuellement leur publication pour les rendre visibles sur la carte. |
 | **Inputs** | Identifiant de la ferme en attente, décision de l’administrateur (Approuver ou Rejeter). |
-| **Preconditions** | Un producteur a finalisé la création initiale de sa vitrine ([C2-F1](#c2-f1---cr%C3%A9ation-vitrine)), qui se trouve au statut "En attente d’approbation" (masquée du public). |
-| **Rules / steps** | 1. L’administrateur vérifie l’authenticité de l’exploitation et la validité de l’adresse saisie.2 Si l’administrateur approuve la page, son statut passe à *"Approuvée"* et ses coordonnées géographiques apparaissent immédiatement sur la carte publique ([C1-F1](#c1-f1---exploration-carte)). 3. En cas de rejet, la vitrine reste masquée et le producteur est informé du motif. |
+| **Preconditions** | Un producteur a finalisé la création initiale de sa vitrine ([`C2-F1`](#c2-f1---cr%C3%A9ation-vitrine)), qui se trouve au statut "En attente d’approbation" (masquée du public). |
+| **Rules / steps** | 1. L’administrateur vérifie l’authenticité de l’exploitation et la validité de l’adresse saisie.<br>2. Si l’administrateur approuve la page, son statut passe à *"Approuvée"* et ses coordonnées géographiques apparaissent immédiatement sur la carte publique ([`C1-F1`](#c1-f1---exploration-carte)).<br>3. En cas de rejet, la vitrine reste masquée et le producteur est informé du motif. |
 | **Outputs** | Mise à jour de la visibilité de la ferme sur la plateforme. |
 | **Acceptance criteria** | Une ferme nouvellement créée est invisible dans les recherches clients avant validation et devient consultable publiquement dès qu’un administrateur clique sur *"Approuver"*. |
 
@@ -430,10 +524,15 @@ deactivate App
 
 ##### C3-F4 - Libération fonds 7j
 
-| ID | `C3-F4` |
+| **ID** | `C3-F4` |
 | --- | --- |
 | **Name** | Libération fonds 7j |
 | **Short description** | Si aucun litige n'est ouvert dans les 7 jours calendaires suivant un paiement en ligne, le système envoie automatiquement via l'API de l'intermédiaire de paiement l'instruction de transférer la part du producteur ($S$) vers son compte bénéficiaire et de prélever la commission fixe de la plateforme. |
+| **Inputs** | Liste des commandes au statut *"En séquestre (7j)"* dont la date d'expiration ($T_0 + 7\text{ jours}$) est atteinte et qui n'ont aucun litige ouvert ([`C3-F5`](#c3-f5---arbitrage-litige)). |
+| **Preconditions** | Le paiement en ligne a été confirmé ([`C1-F5`](#c1-f5---paiement-en-ligne-garanti)), 7 jours calendaires ($168\text{ heures}$) se sont écoulés et aucun litige n'a été enregistré par un administrateur. |
+| **Rules / steps** | 1. Une tâche planifiée vérifie périodiquement les paiements en séquestre arrivés à échéance.<br>2. Pour chaque commande éligible sans litige actif, le système appelle l'API de l'intermédiaire de paiement pour déclencher le virement du sous-total $S$ au producteur et retenir la commission.<br>3. À réception de la confirmation du prestataire, le statut passe à *"Fonds libérés"*. |
+| **Outputs** | Ordre de transfert API, identifiant de versement et mise à jour du statut de la commande. |
+| **Acceptance criteria** | Toute commande payée en ligne sans litige voit ses fonds automatiquement libérés vers le producteur au plus tard 1 heure après l'expiration du délai de 7 jours, tandis que toute commande avec un litige ouvert est ignorée par ce processus. |
 
 ##### C3-F5 - Arbitrage litige
 
@@ -442,7 +541,7 @@ deactivate App
 | **Name** | Arbitrage litige |
 | **Short description** | Lorsqu'un client signale par e-mail ou téléphone (via les coordonnées affichées sur la plateforme) ne pas avoir pu obtenir son panier payé en ligne dans le délai de 7 jours, l'administrateur suspend le transfert automatique et tranche le litige via l'intermédiaire de paiement. |
 | **Rules / constraints** | L'administrateur ne peut clôturer un litige que selon deux issues exclusives exécutées via l'API de l'intermédiaire de paiement : (1) ordre de remboursement intégral du client si le producteur n'a pas fourni le panier comme promis, ou (2) ordre de libération des fonds au producteur si le client ne s'est pas présenté alors que le producteur a rempli ses obligations. |
-| **Acceptance criteria** | L'ouverture d'un litige bloque l'envoi de l'instruction automatique de transfert ([C3-F4](#c3-f4---libération-fonds-7j)) ; l'issue (1) déclenche un remboursement complet auprès du prestataire (statut *"Client remboursé"*), tandis que l'issue (2) déclenche le virement vers le compte bénéficiaire du producteur (statut *"Fonds libérés"*). |
+| **Acceptance criteria** | L'ouverture d'un litige bloque l'envoi de l'instruction automatique de transfert ([`C3-F4`](#c3-f4---libération-fonds-7j)) ; l'issue (1) déclenche un remboursement complet auprès du prestataire (statut *"Client remboursé"*), tandis que l'issue (2) déclenche le virement vers le compte bénéficiaire du producteur (statut *"Fonds libérés"*). |
 | **Model** | ![c3-f5](assets/diagrams/c3-f5.svg) |
 
 <details>
@@ -528,8 +627,6 @@ Chaque exigence non fonctionnelle précise des critères d’acceptation mesurab
 
 ### 5.1. Client–Server Architecture
 
-*Include a diagram of the intended clients, servers and main components. Indicate the principal connections and responsibilities.* *Include a conceptual UML Class Diagram showing main domain classes and their relationships. This is a conceptual model, not an implementation or database diagram.*
-
 ![architecture](assets/diagrams/architecture.svg)
 
 <details>
@@ -538,72 +635,62 @@ Chaque exigence non fonctionnelle précise des critères d’acceptation mesurab
 @startuml assets/diagrams/architecture
 skinparam componentStyle uml2
 skinparam shadowing false
-skinparam linetype ortho
+skinparam ranksep 70
+skinparam nodesep 50
 
-package "Clients (Navigateur Web / Application Mobile)" {
-    component "Client Consommateur" as ClientApp {
-        [Module Carte Interactive]
-        [Module Panier & Négociation]
-        [Widget Paiement Hébergé]
-    }
-    component "Client Producteur" as FarmerApp {
-        [Gestionnaire de Vitrine & Produits]
-        [Gestionnaire d'Offres Paniers]
-    }
-    component "Portail Administrateur" as AdminApp {
-        [Console d'Approbation Fermes]
-        [Console d'Arbitrage Litiges]
-    }
+package "Clients (Navigateur Web / Mobile)" {
+    component "Application Client\n(Carte, Panier, Paiement hébergé)" as ClientApp
+    component "Application Producteur\n(Vitrine, Catalogue, Offres)" as FarmerApp
+    component "Portail Administrateur\n(Approbation, Litiges)" as AdminApp
 }
 
-package "Serveur Applicatif (Backend Plateforme)" {
+package "Serveur Applicatif (Backend PanierFermier)" {
     interface "API REST / HTTPS (TLS 1.3)" as API
-    
+
+    component [Service Authentification] as AuthSvc
     component [Service Découverte & Vitrines] as DiscoverySvc
     component [Service Paniers & Tarification] as OrderSvc
     component [Service Séquestre & Litiges] as EscrowSvc
     component [Service Administration] as AdminSvc
     component [Service Notifications] as NotifSvc
 
-    database "Base de Données Principale" as DB {
-        [Fermes, Produits & Horaires]
-        [Paniers & Statuts Séquestre]
-        [Comptes Utilisateurs]
-    }
+    database "Base de Données Principale\n(Fermes, Produits, Paniers, Utilisateurs)" as DB
 }
 
 cloud "Services Externes" {
-    component "Intermédiaire de Paiement\n(ex. Stripe / Stripe Connect)" as Stripe
+    component "Intermédiaire de Paiement PCI-DSS\n(ex. Stripe / Stripe Connect)" as Stripe
     component "Fournisseur Cartographique\n(ex. OpenStreetMap)" as MapAPI
     component "Passerelle E-mail / Push" as MsgAPI
 }
 
 ' Connexions Clients -> Backend & Externes
-[Module Carte Interactive] --> MapAPI : Chargement tuiles carte
-[Module Carte Interactive] --> API : Recherche par zone (sans GPS)
-[Module Panier & Négociation] --> API : Création & acceptation panier
-[Widget Paiement Hébergé] --> Stripe : Saisie Carte / TWINT (PCI-DSS)
+ClientApp --> MapAPI : Tuiles cartographiques
+ClientApp --> API : Recherche zone (sans GPS) & Paniers
+ClientApp --> Stripe : Saisie Carte / TWINT (hébergé)
 
-FarmerApp --> API : Édition vitrine & ajustement panier
-AdminApp --> API : Validation ferme & décision litige
+FarmerApp --> API : Édition vitrine & ajustement offres
+AdminApp --> API : Validation fermes & décisions litiges
 
 ' Connexions internes Backend
+API --> AuthSvc
 API --> DiscoverySvc
 API --> OrderSvc
 API --> EscrowSvc
 API --> AdminSvc
 
+AuthSvc --> DB
 DiscoverySvc --> DB
 OrderSvc --> DB
 EscrowSvc --> DB
 AdminSvc --> DB
 
 OrderSvc --> NotifSvc : Déclenchement alertes
-EscrowSvc --> Stripe : Création séquestre 7j / Virement / Remboursement
-Stripe --> EscrowSvc : Webhooks confirmation transaction
+EscrowSvc --> Stripe : Séquestre 7j / Virement / Remboursement
+Stripe --> EscrowSvc : Webhooks transaction
 NotifSvc --> MsgAPI : Envoi notifications
 @enduml
 ```
 
 </details>
 
+L'architecture suit un modèle client-serveur découplé. Les interfaces **Client**, **Producteur** et **Administrateur** communiquent avec le serveur applicatif exclusivement via une **API REST sécurisée (TLS 1.3)**. Pour respecter les exigences de sécurité ([`C1-NF2`](#c1-nf2---sécurité-paiements)) et de confidentialité ([`C1-NF1`](#c1-nf1---confidentialité)), l'application cliente charge directement les tuiles cartographiques sans transmettre de coordonnées GPS au serveur et délègue la saisie des moyens de paiement aux composants hébergés de **Stripe**. Côté serveur, la logique métier est répartie en services spécialisés (authentification, découverte, tarification/paniers, séquestre/litiges, administration et notifications) s'appuyant sur une base de données relationnelle centrale qui ne conserve aucune donnée bancaire sensible ni adresse de client.
