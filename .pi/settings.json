@@ -1,0 +1,15 @@
+{
+  "$schema": "https://pi.dev/schemas/settings.schema.json",
+  "defaultProvider": "deepinfra",
+  "defaultModel": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+  "defaultThinkingLevel": "high",
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 24576,
+    "keepRecentTokens": 32768
+  },
+  "retry": {
+    "enabled": true,
+    "maxRetries": 3
+  }
+}

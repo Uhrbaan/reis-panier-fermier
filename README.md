@@ -29,7 +29,7 @@ Traditional e-commerce platforms require strict inventory tracking that is often
 
 ```text
 ├── .github/workflows/       # CI pipeline for automated PlantUML rendering
-├── diagrams/                # Generated SVG diagrams (architecture, use cases, flows)
+├── assets/diagrams/         # Generated SVG diagrams (architecture, use cases, flows)
 ├── frontend/                # Vue 3 SPA (Client, Producer, and Admin views)
 │   └── src/
 │       ├── views/           # Role-specific views (ClientView, FarmerView, AdminView)
@@ -53,7 +53,7 @@ Traditional e-commerce platforms require strict inventory tracking that is often
 ```bash
 cd backend
 npm install
-npx run dev
+npm run dev
 ```
 
 The API server will start on `http://localhost:3000`.

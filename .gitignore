@@ -14,3 +14,8 @@
 *.log
 
 **/.vscode
+
+# local files
+github-markdown-light.css
+REQUIREMENTS.pdf
+.markdownlint.json
