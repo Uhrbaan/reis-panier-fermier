@@ -14,8 +14,8 @@ Development strictly follows **Specification-Driven Development (SDD)**. Before 
 
 ## 2. Repository Structure & Tech Stack
 * **Language:** TypeScript exclusively across frontend, backend, and tests.
-* **Frontend (`client/`):** Vue 3 (Composition API, `<script setup lang="ts">`), Tailwind CSS, Vue Router, MapLibre GL JS (OpenStreetMap tiles).
-* **Backend (`server/`):** Node.js, Express, SQLite (`better-sqlite3`), `multer` (local banner uploads), `bcrypt` + `jsonwebtoken` (auth).
+* **Frontend (`frontend/`):** Vue 3 (Composition API, `<script setup lang="ts">`), Tailwind CSS, Vue Router, MapLibre GL JS (OpenStreetMap tiles).
+* **Backend (`backend/`):** Node.js, Express, SQLite (`better-sqlite3`), `multer` (local banner uploads), `bcrypt` + `jsonwebtoken` (auth). Server code lives in `backend/src/`.
 * **Tests (`tests/`):** Vitest + Supertest (unit, integration, NFR benchmarks) and Playwright (E2E).
 * **Specifications (`specs/` & `REQUIREMENTS.md`):** Markdown + inline PlantUML diagrams.
 
@@ -33,7 +33,7 @@ Development strictly follows **Specification-Driven Development (SDD)**. Before 
 * **No Stock Management (`C2-F3`):** Products must NEVER have a `stock` or `quantity_available` column. Availability is handled dynamically when the producer removes unavailable items from a requested basket (`C2-F5`).
 * **Approval Workflow (`C2-F1`, `C2-F4`, `C3-F1`):** Newly created farms start with `status = 'PENDING_APPROVAL'` and are hidden from `/api/client/farms`. Once `APPROVED` by an admin, subsequent edits by the producer (`PUT /api/farmer/farm` or product CRUD) take effect immediately without resetting approval status.
 * **Server-Side Geocoding:** When creating or updating a farm's address, geocode it on the backend using the free Swiss federal API (`https://api3.geo.admin.ch/rest/services/api/SearchServer?type=locations&searchText=...`) with fallback to OpenStreetMap Nominatim.
-* **Local Image Uploads:** Store uploaded farm banners on disk in `server/uploads/` via `multer` and serve them statically at `/uploads/<filename>`. Store only the relative URL in SQLite.
+* **Local Image Uploads:** Store uploaded farm banners on disk in `backend/uploads/` via `multer` and serve them statically at `/uploads/<filename>`. Store only the relative URL in SQLite.
 * **Extensible Notifications (`C3-F2`):** Persist notifications in SQLite via `NotificationService` using an extensible channel interface (`NotificationChannel`) so e-mail delivery can be plugged in later without changing route controllers.
 
 ## 4. Coding Conventions & SDD Synchronization

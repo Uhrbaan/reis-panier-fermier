@@ -23,8 +23,8 @@ A privacy-first web application connecting local agricultural producers with con
 ## 2. Tech Stack
 
 * **Language:** TypeScript (end-to-end across client, server, and test suites)
-* **Frontend (`client/`):** Vue 3 (Composition API), Tailwind CSS, Vue Router, MapLibre GL JS
-* **Backend (`server/`):** Node.js, Express, SQLite (`better-sqlite3`), Multer (local image uploads), `bcrypt` & `jsonwebtoken` (JWT role-based authentication)
+* **Frontend (`frontend/`):** Vue 3 (Composition API), Tailwind CSS, Vue Router, MapLibre GL JS
+* **Backend (`backend/`):** Node.js, Express, SQLite (`better-sqlite3`), Multer (local image uploads), `bcrypt` & `jsonwebtoken` (JWT role-based authentication)
 * **Testing & CI (`tests/`, `.github/workflows/`):** Vitest + Supertest (unit, integration, NFR performance benchmarks), Playwright (end-to-end tests), GitHub Actions (automated tests & PlantUML SVG rendering)
 
 ---
@@ -37,7 +37,7 @@ UNIFR_RE_PROJECT_I/
 │   └── workflows/               # GitHub Actions CI (PlantUML rendering & automated test suite)
 ├── assets/
 │   └── diagrams/                # Compiled SVG UML diagrams generated from REQUIREMENTS.md
-├── client/                      # Vue 3 + Tailwind CSS Single Page Application
+├── frontend/                    # Vue 3 + Tailwind CSS Single Page Application
 │   ├── src/
 │   │   ├── components/          # Shared components (FarmMap, NotificationBell, AuthModal)
 │   │   ├── layouts/             # Role-specific layouts (ClientLayout, FarmerLayout, AdminLayout)
@@ -45,13 +45,19 @@ UNIFR_RE_PROJECT_I/
 │   │   ├── router/              # Vue Router configuration
 │   │   └── stores/              # Authentication & application state
 │   └── package.json
-├── server/                      # Node.js + Express + SQLite REST API
+├── backend/                     # Node.js + Express + SQLite REST API
 │   ├── src/
+│   │   ├── config/env.ts        # Port, DB_PATH, JWT secret/expiry
 │   │   ├── middleware/          # JWT authentication & role isolation (requireAuth, requireRole)
+│   │   ├── repositories/        # SQL data access (users)
 │   │   ├── routes/              # /api/auth, /api/client, /api/farmer, /api/admin, /api/notifications
-│   │   ├── services/            # Geocoder (geo.admin.ch), NotificationService, pricing logic
-│   │   ├── db.ts                # SQLite schema initialization & seed script
-│   │   └── index.ts             # Express server entry point
+│   │   ├── services/            # Geocoder (geo.admin.ch), NotificationService, pricing, passwords, JWT
+│   │   ├── types/               # Domain models & Express `req.user` augmentation
+│   │   ├── db.ts                # SQLite connection, schema & indexes
+│   │   ├── seed.ts              # Demo dataset (1 admin, 1 client, 2 farms)
+│   │   └── server.ts            # Express server entry point
+│   ├── scripts/                 # `npm run seed`, `npm run token` helpers
+│   ├── data/                    # Generated SQLite database (git-ignored)
 │   ├── uploads/                 # Local storage for uploaded farm banners
 │   └── package.json
 ├── specs/                       # Specification-Driven Development (SDD) artifacts
@@ -84,17 +90,19 @@ cd UNIFR_RE_PROJECT_I
 
 ### 2. Start the Backend Server
 ```bash
-cd server
+cd backend
 npm install
+cp .env.example .env   # then set JWT_SECRET
 npm run dev
 ```
 * The Express API starts on `http://localhost:3000`.
-* On first launch, SQLite automatically initializes the database schema (`panierfermier.db`) and seeds demo accounts and sample farms around Fribourg.
+* On first launch, SQLite initializes the schema (`backend/data/panierfermier.db`) and seeds the demo accounts and two farms around Fribourg. The seed is idempotent, so restarting never duplicates data; `npm run seed` re-runs it explicitly.
+* Security note: `JWT_SECRET` is mandatory when `NODE_ENV=production`; in development the server falls back to an insecure secret and prints a warning.
 
 ### 3. Start the Frontend Application
 Open a second terminal:
 ```bash
-cd client
+cd frontend
 npm install
 npm run dev
 ```
@@ -109,7 +117,8 @@ The application serves three distinct interfaces within a single Vue 3 SPA, back
 | Role | Interface Route | Demo Email | Demo Password | Capabilities |
 | :--- | :--- | :--- | :--- | :--- |
 | **Client** | `/` | `clara@example.ch` | `password123` | Explore approved farms on map, view storefronts, compose baskets, accept/reject offers |
-| **Producer** | `/producteur` | `marc@example.ch` | `password123` | Create/edit farm storefront, upload banner, manage products (no stock), adjust incoming baskets |
+| **Producer** | `/producteur` | `marc@example.ch` | `password123` | Owner of *Ferme des Tilleuls* (`APPROVED`): edit storefront, upload banner, manage products (no stock), adjust incoming baskets |
+| **Producer** | `/producteur` | `anna@example.ch` | `password123` | Owner of *Ferme du Vully* (`PENDING_APPROVAL`): handy for demoing the admin approval workflow |
 | **Administrator** | `/admin` | `sophie@example.ch` | `password123` | Review pending farm registrations and approve or reject publication |
 
 *(Public visitors can also explore the map and view approved farm pages without logging in, or register a new `CLIENT` or `FARMER` account directly via the UI.)*

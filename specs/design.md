@@ -1,19 +1,26 @@
 # Technical Design Specification — PanierFermier
 
 ## 1. Architecture & Tech Stack
-* **Frontend (`client/`) :** SPA **Vue 3** (Composition API, TypeScript), **Tailwind CSS**, **Vue Router**, **MapLibre GL JS** (tuiles OpenStreetMap).
-* **Backend (`server/`) :** **Node.js**, **Express**, **TypeScript**, **SQLite** (`better-sqlite3`), **Multer** (upload d'images local), **bcrypt** + **jsonwebtoken** (authentification).
+* **Frontend (`frontend/`) :** SPA **Vue 3** (Composition API, TypeScript), **Tailwind CSS**, **Vue Router**, **MapLibre GL JS** (tuiles OpenStreetMap).
+* **Backend (`backend/`) :** **Node.js**, **Express**, **TypeScript**, **SQLite** (`better-sqlite3`), **Multer** (upload d'images local), **bcrypt** + **jsonwebtoken** (authentification).
 * **Tests (`tests/`) :** **Vitest** + **Supertest** (tests unitaires et d'intégration API/NFR) et **Playwright** (tests E2E).
+
+> **Note (T1.2) :** Les répertoires réels du dépôt sont `backend/` et `frontend/` (et non `server/` / `client/`). Le code serveur vit dans `backend/src/`.
 
 ## 2. Key Design Decisions (ADRs)
 
 1. **ADR-01 — Exclusion de Stripe & Séquestre :** Les paiements en ligne sont retirés du périmètre A2. Le modèle `Basket` conserve le champ `payment_method` (`CASH`, `TWINT_FARM`, `CARD_FARM`) afin de permettre l'ajout ultérieur d'un mode `ONLINE_ESCROW` sans casser le schéma.
 2. **ADR-02 — Géocodage côté serveur :** Lorsqu'un producteur soumet ou met à jour l'adresse de sa ferme (`C2-F1`, `C2-F4`), le backend interroge l'API gratuite suisse **geo.admin.ch** (`SearchServer`) avec repli sur **Nominatim (OpenStreetMap)** pour convertir l'adresse en `(latitude, longitude)` avant insertion en base.
-3. **ADR-03 — Stockage des bannières sans 2e base de données :** Les images uploadées via `multipart/form-data` sont enregistrées par `multer` dans `server/uploads/` et servies statiquement sous `/uploads/<filename>`. Seul le chemin relatif est stocké dans SQLite.
+3. **ADR-03 — Stockage des bannières sans 2e base de données :** Les images uploadées via `multipart/form-data` sont enregistrées par `multer` dans `backend/uploads/` et servies statiquement sous `/uploads/<filename>`. Seul le chemin relatif est stocké dans SQLite.
 4. **ADR-04 — Service de notifications extensible (Strategy / Observer Pattern) :** La classe `NotificationService` écrit les notifications dans la table SQLite `notifications` (cloche interne `C3-F2`), tout en exposant une interface `NotificationChannel` permettant d'enregistrer ultérieurement un canal e-mail (`EmailChannel`) sans modifier les contrôleurs de commandes.
 5. **ADR-05 — Authentification légère unifiée :** Une seule table `users` gère les trois rôles (`CLIENT`, `FARMER`, `ADMIN`) via JWT. Aucun champ d'adresse ou de GPS n'existe sur `users` (`C1-NF1`).
+6. **ADR-06 — Autorisation côté serveur uniquement :** `requireAuth` valide la signature et l'expiration du JWT puis **relit l'utilisateur en base** à chaque requête (le rôle porté par le jeton n'est jamais considéré comme une vérité) ; `requireRole('FARMER' | 'ADMIN')` restreint ensuite l'accès. Les gardes Vue Router ne sont qu'un confort d'interface et ne constituent jamais la frontière de sécurité.
 
 ## 3. SQLite Database Schema
+
+**Implémentation :** `backend/src/db.ts` (schéma + index), `backend/src/seed.ts` (jeu de démonstration), `backend/src/middleware/auth.ts` (JWT). Base par défaut : `backend/data/panierfermier.db` (surchargeable via `DB_PATH`, `:memory:` supporté). `foreign_keys = ON` est activé à chaque connexion et `journal_mode = WAL` en mode fichier.
+
+**Index :** `farms(status)` (liste publique des fermes approuvées, `C2-NF1`), `farms(owner_id)`, `products(farm_id)`, `baskets(client_id)`, `baskets(farm_id)`, `basket_items(basket_id)`, `notifications(user_id, is_read)`, `notifications(basket_id)`.
 
 ```sql
 CREATE TABLE users (
@@ -76,6 +83,28 @@ CREATE TABLE notifications (
 
 ```
 
+### 3.1. Seed de démonstration (`backend/src/seed.ts`)
+
+Idempotent (aucune insertion si la table `users` contient déjà des lignes) et exécuté automatiquement au démarrage du serveur (`npm run seed` pour le lancer seul). Mot de passe commun : `password123`.
+
+| Rôle | Email | Ferme créée | Statut |
+| :--- | :--- | :--- | :--- |
+| `ADMIN` | `sophie@example.ch` | — | — |
+| `CLIENT` | `clara@example.ch` | — | — |
+| `FARMER` | `marc@example.ch` | Ferme des Tilleuls (Fribourg) | `APPROVED` |
+| `FARMER` | `anna@example.ch` | Ferme du Vully (Sugiez) | `PENDING_APPROVAL` |
+
+Un producteur possède exactement une vitrine (`GET /api/farmer/farm`) : les 2 fermes demandées sont donc portées par 2 comptes `FARMER` distincts, ce qui préserve l'isolation `owner_id = req.user.id`. La ferme `APPROVED` alimente la carte (`C1-F1`), la ferme `PENDING_APPROVAL` permet de démontrer la validation administrateur (`C3-F1`). Les produits sont créés sans aucun champ de stock (`C2-F3`).
+
+### 3.2. Middlewares JWT (`backend/src/middleware/auth.ts`)
+
+| Middleware | Comportement | Codes |
+| :--- | :--- | :--- |
+| `requireAuth` | Extrait le jeton `Authorization: Bearer <jwt>`, vérifie signature + expiration, puis recharge l'utilisateur en base. | `401` (en-tête absent/malformé, jeton invalide ou expiré, compte supprimé) |
+| `requireRole(...roles)` | Refuse l'accès si `req.user.role` n'appartient pas aux rôles autorisés. À monter après `requireAuth`. | `401` (non authentifié), `403` (rôle insuffisant) |
+
+Le jeton est signé avec `JWT_SECRET` (obligatoire si `NODE_ENV=production`, repli de développement avec avertissement sinon) et expire après `JWT_EXPIRES_IN` (défaut `8h`). Le payload ne contient que `sub` (id), `email` et `role` : aucune donnée personnelle supplémentaire (`C1-NF1`).
+
 ## 4. REST API Contract
 
 ### Authentification & Notifications (Tous rôles)
@@ -108,7 +137,7 @@ CREATE TABLE notifications (
 * `GET /api/admin/farms/pending` — Liste les fermes au statut `PENDING_APPROVAL` (`C3-F1`).
 * `PATCH /api/admin/farms/:id/status` — Approuve (`APPROVED`) ou rejette (`REJECTED`) une ferme (`C3-F1`).
 
-## 5. Frontend Component Structure (`client/src/`)
+## 5. Frontend Component Structure (`frontend/src/`)
 
 * **Layouts :** `ClientLayout.vue` (carte + cloche + mes paniers), `FarmerLayout.vue` (menu vitrine/produits/commandes + cloche), `AdminLayout.vue` (validations fermes).
 * **Composants partagés :** `NotificationBell.vue`, `AuthModal.vue`, `FarmMap.vue` (MapLibre GL JS).

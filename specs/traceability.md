@@ -19,9 +19,9 @@
 | `C3-F3` | Calcul prix et commission | **Implémenté (adapté)** | `pricing.ts` (commission = 0 % sur place) | `tests/unit/pricing.test.ts` |
 | `C3-F4` | Libération fonds 7j | **Reporté (Deferred)** | *Exclu du périmètre A2* | N/A |
 | `C3-F5` | Arbitrage litige | **Reporté (Deferred)** | *Exclu du périmètre A2* | N/A |
-| `C1-NF1` | Confidentialité | **Implémenté** | Schéma `users` sans adresse, absence de `geolocation` | `tests/unit/privacy.test.ts` |
+| `C1-NF1` | Confidentialité | **Implémenté** | Schéma `users` sans adresse (`backend/src/db.ts`), absence de `geolocation`, payload JWT minimal | `tests/unit/privacy.test.ts` |
 | `C1-NF2` | Sécurité paiements | **Reporté (Deferred)** | *Exclu du périmètre A2* | N/A |
-| `C2-NF1` | Performance carte | **Implémenté** | Index SQLite sur `farms(status)` | `tests/integration/perf.test.ts` |
+| `C2-NF1` | Performance carte | **Implémenté** | Index `idx_farms_status` sur `farms(status)` (`backend/src/db.ts`) | `tests/integration/perf.test.ts` |
 | `C2-NF2` | Délai notifications | **Implémenté** | Insertion synchrone dans `NotificationService` | `tests/integration/perf.test.ts` |
 | `C3-NF1` | Ergonomie vitrine | **Implémenté** | Parcours unifié `FarmEditor.vue` | `tests/e2e/farmer-flow.spec.ts` |
 
