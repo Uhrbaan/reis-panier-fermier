@@ -27,7 +27,7 @@
 
 ## 2. Écarts documentés par rapport à l'Assignment 1
 
-1. **Retrait complet du paiement en ligne (Stripe) et du séquestre :** Pour concentrer le prototype de 4 semaines sur le cœur métier (découverte cartographique sans GPS et négociation de paniers sans gestion de stocks), l'intégration Stripe (`C1-F5`, `C3-F4`, `C3-F5`, `C1-NF2`) a été reportée[cite: 12, 13]. Seul le paiement direct à la ferme (Carte, TWINT, Cash) est actif[cite: 14].
+1. **Retrait complet du paiement en ligne (Stripe) et du séquestre :** Pour concentrer le prototype de 4 semaines sur le cœur métier (découverte cartographique sans GPS et négociation de paniers sans gestion de stocks), l'intégration Stripe (`C1-F5`, `C3-F4`, `C3-F5`, `C1-NF2`) a été reportée.
 2. **Notifications internes plutôt qu'e-mails externes :** `C3-F2` est implémenté via une cloche de notifications persistée dans SQLite plutôt que par envoi d'e-mails SMTP. L'architecture serveur utilise toutefois une interface `NotificationChannel` permettant d'ajouter un connecteur e-mail ultérieurement.
 3. **Géocodage automatique à la création de ferme :** En complément de `C2-F1`, le serveur déduit automatiquement les coordonnées GPS de la ferme via l'API suisse `geo.admin.ch` (avec repli sur Nominatim) à partir de l'adresse saisie par le producteur.
 4. **Stockage local des bannières :** Les bannières photos (`C2-F1`) sont téléversées via `multer` et servies depuis le système de fichiers local du serveur (`server/uploads/`), sans recourir à un stockage cloud externe.

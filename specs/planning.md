@@ -5,10 +5,11 @@
 **Durée :** 4 semaines
 
 ## Semaine 1 : Socle Technique, Base de Données & Authentification (Commun)
-* [ ] **T1.1 (Dev A & B) :** Initialiser l'arborescence (`client/`, `server/`, `tests/`, `specs/`) et les configurations TypeScript + Tailwind CSS[cite: 12].
+* [ ] **T1.1 (Dev A & B) :** Initialiser l'arborescence (`client/`, `server/`, `tests/`, `specs/`) et les configurations TypeScript + Tailwind CSS.
 * [ ] **T1.2 (Dev B) :** Implémenter le schéma SQLite (`server/db.ts`), le script de données initiales (seed avec 1 Admin, 2 Fermes, 1 Client) et les middlewares JWT (`requireAuth`, `requireRole`).
 * [ ] **T1.3 (Dev A) :** Mettre en place le routeur Vue 3, les 3 Layouts (`Client`, `Farmer`, `Admin`), le store d'authentification et la page de connexion/inscription.
 * [ ] **T1.4 (Dev B) :** Implémenter `NotificationService` (cloche interne SQLite) + composant Vue `NotificationBell.vue` (Dev A).
+* [ ] **T1.5 (Dev B) :** Développer l'interface Client.
 
 ## Semaine 2 : Flux Producteur & Administration (Vitrine, Upload, Géocodage, Validation)
 * [ ] **T2.1 (Dev B) :** Implémenter le service de géocodage (`geo.admin.ch` / Nominatim) et l'upload d'image avec `multer` (`/uploads`).
@@ -25,6 +26,6 @@
 ## Semaine 4 : Tests Automatisés (Bonus), CI GitHub Actions & Documentation Finale
 * [ ] **T4.1 (Dev B) :** Écrire les tests unitaires et d'intégration API (Vitest + Supertest) couvrant toutes les FR actives et les NFR mesurables (`C2-NF1`, `C2-NF2`).
 * [ ] **T4.2 (Dev A) :** Écrire les tests End-to-End (Playwright) couvrant les scénarios complets (Création ferme $\rightarrow$ Approbation Admin $\rightarrow$ Panier Client $\rightarrow$ Ajustement Producteur $\rightarrow$ Confirmation).
-* [ ] **T4.3 (Dev A & B) :** Configurer `.github/workflows/ci.yml` pour exécuter automatiquement les tests et la génération PlantUML à chaque push[cite: 13].
-* [ ] **T4.4 (Dev A & B) :** Finaliser `specs/traceability.md`, `README.md` (incluant la déclaration d'usage de l'IA) et la présentation PDF (10–15 min)[cite: 12, 13].
+* [ ] **T4.3 (Dev A & B) :** Configurer `.github/workflows/ci.yml` pour exécuter automatiquement les tests et la génération PlantUML à chaque push.
+* [ ] **T4.4 (Dev A & B) :** Finaliser `specs/traceability.md`, `README.md` (incluant la déclaration d'usage de l'IA) et la présentation PDF (10–15 min).
 

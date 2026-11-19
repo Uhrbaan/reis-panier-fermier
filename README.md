@@ -1,88 +1,160 @@
-# PanierFermier
+# PanierFermier (`UNIFR_RE_PROJECT_I`)
 
-> [!IMPORTANT]
-> **Status: WIP**.
-> Please note that his project is not intended to go beyond the stage of a working prototype.
+A privacy-first web application connecting local agricultural producers with consumers for direct farm-gate basket pickup. Developed using **Specification-Driven Development (SDD)** as part of the **Requirements Engineering for Information Systems** course at the University of Fribourg (Department of Informatics – DIGITS Research Group).
 
-A privacy-first web application connecting local agricultural producers with consumers for direct farm-gate pickup. Built as part of the **Requirements Engineering for Information Systems** course at the University of Fribourg.
+---
 
-## Overview
+## 1. Project Description & Scope
 
-Traditional e-commerce platforms require strict inventory tracking that is often too heavy for small-scale farmers dealing with seasonal, fluctuating harvests. This platform solves that problem by allowing farmers to list available products **without managing stock quantities** and adjust customer baskets before final confirmation.
+**PanierFermier** addresses the logistical rigidity of traditional e-commerce platforms for small-scale local farms. Instead of maintaining strict daily stock inventories, producers publish their available products and adjust requested customer baskets based on real harvest availability before final confirmation.
 
-### Key Features
+### Active Prototype Scope (Assignment 2)
+* **Privacy-First Map Discovery (`C1-F1`, `C1-NF1`):** Visitors and consumers explore approved farms on an interactive **MapLibre GL JS + OpenStreetMap** map without browser GPS tracking (`navigator.geolocation` is never invoked) or personal address storage.
+* **Storefront & Stock-Free Catalog (`C2-F1` – `C2-F4`):** Producers create their farm profile with mandatory physical address (automatically geocoded on the backend via the Swiss federal **geo.admin.ch** API with Nominatim fallback), local banner image upload (`multer`), opening hours, and a product catalog without stock counters.
+* **Interactive Basket Negotiation (`C1-F3`, `C1-F4`, `C2-F5`, `C3-F3`):** Clients compose a basket and select a farm-gate payment method (`CASH`, `TWINT_FARM`, `CARD_FARM`). Producers review requests, remove unavailable items, and submit an automatically recalculated offer (`0%` platform commission) for final client confirmation.
+* **Admin Farm Verification (`C3-F1`):** New farm storefronts remain hidden (`PENDING_APPROVAL`) until manually approved by an administrator. Subsequent updates by approved farmers publish immediately (`C2-F4`).
+* **Extensible Internal Notifications (`C3-F2`):** Order state transitions trigger in-app notifications backed by SQLite, designed with a channel interface (`NotificationChannel`) to support future e-mail delivery.
 
-* **Privacy-First Discovery:** Consumers browse approved farms on an interactive map without GPS tracking or personal address storage.
-* **Flexible Basket Negotiation:** Customers compose a basket and select a payment method. Farmers can remove unavailable items before validating the final price, which the customer can then accept or decline.
-* **Dual Payment Model:**
-  * **Pay at the Farm:** Direct settlement (Cash, Card, TWINT) with zero platform fees and no financial guarantee.
-  * **Online Escrow Payment:** Delegated via a PCI-DSS compliant payment provider (e.g., Stripe) with a fixed platform commission. Funds are held in escrow for **7 days** to protect both parties, with manual dispute arbitration by administrators.
-* **Lightweight Storefront Management:** Farmers manage their banner, description, opening hours, mandatory farm address, and product catalog. After initial administrator approval, subsequent updates publish immediately.
+### Deferred Requirements (Out of A2 Scope)
+* **Online Payments & 7-Day Escrow (`C1-F5`, `C3-F4`, `C3-F5`, `C1-NF2`):** Stripe integration, online escrow holding, and financial dispute arbitration are deferred to keep the prototype focused on core discovery, negotiation, and verification workflows.
 
-## Tech Stack
+---
 
-* **Frontend:** Vue 3, TypeScript, Vite, Vue Router
-* **Backend:** Node.js, Express, TypeScript, SQLite (`better-sqlite3`)
-* **Documentation & Diagrams:** Markdown, PlantUML (automated SVG rendering via GitHub Actions)
+## 2. Tech Stack
 
-## Project Structure
+* **Language:** TypeScript (end-to-end across client, server, and test suites)
+* **Frontend (`client/`):** Vue 3 (Composition API), Tailwind CSS, Vue Router, MapLibre GL JS
+* **Backend (`server/`):** Node.js, Express, SQLite (`better-sqlite3`), Multer (local image uploads), `bcrypt` & `jsonwebtoken` (JWT role-based authentication)
+* **Testing & CI (`tests/`, `.github/workflows/`):** Vitest + Supertest (unit, integration, NFR performance benchmarks), Playwright (end-to-end tests), GitHub Actions (automated tests & PlantUML SVG rendering)
+
+---
+
+## 3. Repository Structure
 
 ```text
-├── .github/workflows/       # CI pipeline for automated PlantUML rendering
-├── assets/diagrams/         # Generated SVG diagrams (architecture, use cases, flows)
-├── frontend/                # Vue 3 SPA (Client, Producer, and Admin views)
-│   └── src/
-│       ├── views/           # Role-specific views (ClientView, FarmerView, AdminView)
-│       ├── router.ts        # Client-side routing
-│       └── App.vue          # Root layout & navigation
-├── backend/                 # Express REST API & SQLite database
-├── Requirements.md          # Full Requirements Specification document
+UNIFR_RE_PROJECT_I/
+├── .github/
+│   └── workflows/               # GitHub Actions CI (PlantUML rendering & automated test suite)
+├── assets/
+│   └── diagrams/                # Compiled SVG UML diagrams generated from REQUIREMENTS.md
+├── client/                      # Vue 3 + Tailwind CSS Single Page Application
+│   ├── src/
+│   │   ├── components/          # Shared components (FarmMap, NotificationBell, AuthModal)
+│   │   ├── layouts/             # Role-specific layouts (ClientLayout, FarmerLayout, AdminLayout)
+│   │   ├── views/               # Client, Producer, and Administrator pages
+│   │   ├── router/              # Vue Router configuration
+│   │   └── stores/              # Authentication & application state
+│   └── package.json
+├── server/                      # Node.js + Express + SQLite REST API
+│   ├── src/
+│   │   ├── middleware/          # JWT authentication & role isolation (requireAuth, requireRole)
+│   │   ├── routes/              # /api/auth, /api/client, /api/farmer, /api/admin, /api/notifications
+│   │   ├── services/            # Geocoder (geo.admin.ch), NotificationService, pricing logic
+│   │   ├── db.ts                # SQLite schema initialization & seed script
+│   │   └── index.ts             # Express server entry point
+│   ├── uploads/                 # Local storage for uploaded farm banners
+│   └── package.json
+├── specs/                       # Specification-Driven Development (SDD) artifacts
+│   ├── requirements/            # Categorized FRs and NFRs (fr-client, fr-farmer, fr-admin, nfr)
+│   ├── system-overview.md       # Vision, personas, active scenarios, and A1 model links
+│   ├── design.md                # Technical architecture, ADRs, SQLite schema, REST API contract
+│   ├── task-planning.md         # 4-week implementation & testing roadmap
+│   └── traceability.md          # A1 <-> A2 traceability matrix, test evidence, and deviations
+├── tests/                       # Automated test suites (Bonus)
+│   ├── unit/                    # Pricing, privacy constraints, notification service
+│   ├── integration/             # Express API endpoints & NFR response time checks
+│   └── e2e/                     # Playwright end-to-end user flows
+├── AGENTS.md                    # Architectural rules & constraints for AI co-engineering
+├── REQUIREMENTS.md              # Full Assignment 1 Requirements Specification + inline PlantUML
 └── README.md
-
 ```
 
-## Getting Started
+---
+
+## 4. Installation & Execution Instructions
 
 ### Prerequisites
+* **Node.js** `v20+` and **npm**
 
-* [Node.js](https://nodejs.org/) (v20+ recommended)
-* npm
-
-### 1. Run the Backend
-
+### 1. Clone the Repository
 ```bash
-cd backend
+git clone https://github.com/Uhrbaan/reis-panier-fermier
+cd UNIFR_RE_PROJECT_I
+```
+
+### 2. Start the Backend Server
+```bash
+cd server
 npm install
 npm run dev
 ```
+* The Express API starts on `http://localhost:3000`.
+* On first launch, SQLite automatically initializes the database schema (`panierfermier.db`) and seeds demo accounts and sample farms around Fribourg.
 
-The API server will start on `http://localhost:3000`.
-
-### 2. Run the Frontend
-
+### 3. Start the Frontend Application
+Open a second terminal:
 ```bash
-cd frontend
+cd client
 npm install
 npm run dev
 ```
+* Open the local Vite URL displayed in the terminal (typically `http://localhost:5173`).
 
-Open the local URL provided by Vite (typically `http://localhost:5173`) to access the three interfaces:
+---
 
-* `/` — Consumer interface
-* `/producteur` — Producer interface
-* `/admin` — Administrator interface
+## 5. Usage & Demo Accounts
 
-## Documentation & UML Diagrams
+The application serves three distinct interfaces within a single Vue 3 SPA, backed by server-side JWT role enforcement:
 
-The complete system specification (including personas, scenarios, information flows, functional/non-functional requirements, and system architecture) is available in [`REQUIREMENTS.md`](https://www.google.com/search?q=./Requirements.md) (french).
+| Role | Interface Route | Demo Email | Demo Password | Capabilities |
+| :--- | :--- | :--- | :--- | :--- |
+| **Client** | `/` | `clara@example.ch` | `password123` | Explore approved farms on map, view storefronts, compose baskets, accept/reject offers |
+| **Producer** | `/producteur` | `marc@example.ch` | `password123` | Create/edit farm storefront, upload banner, manage products (no stock), adjust incoming baskets |
+| **Administrator** | `/admin` | `sophie@example.ch` | `password123` | Review pending farm registrations and approve or reject publication |
 
-All UML diagrams are written inline using PlantUML inside `REQUIREMENTS.md` and are stored in `assets/diagrams/*.svg`. You should re-generate them if you modify them.
+*(Public visitors can also explore the map and view approved farm pages without logging in, or register a new `CLIENT` or `FARMER` account directly via the UI.)*
 
-```sh
-plantuml -tsv REQUIREMENTS.md
+---
+
+## 6. Running Automated Tests
+
+Automated unit, integration, NFR performance, and end-to-end tests are located in `tests/` and run automatically on every push via GitHub Actions:
+
+```bash
+# Run unit & API integration tests (Vitest + Supertest)
+cd server
+npm test
+
+# Run End-to-End browser tests (Playwright)
+cd ../tests
+npx playwright test
 ```
 
-## Authors
+---
 
-* **Ngoc Han Kieu**
-* **Léonard Clément**
+## 7. Specification-Driven Development (SDD) Artifacts
+
+* **Assignment 1 Baseline:** [`REQUIREMENTS.md`](./REQUIREMENTS.md)
+* **System Overview:** [`specs/system-overview.md`](./specs/system-overview.md)
+* **Categorized Requirements:** [`specs/requirements/`](./specs/requirements/)
+* **Technical Design & API Contract:** [`specs/design.md`](./specs/design.md)
+* **Task Roadmap:** [`specs/task-planning.md`](./specs/task-planning.md)
+* **Traceability & Deviations:** [`specs/traceability.md`](./specs/traceability.md)
+
+---
+
+## 8. Declaration of AI Use
+
+In accordance with the course guidelines for AI co-engineering:
+* **AI Tools Used:** Google Gemini / Google Antigravity / Pi.dev harness / Deepseek V4.1 Flash / other LLM coding assistants.
+* **Scope of AI Assistance:**
+  * Structuring and refining the SDD Markdown artifacts (`specs/*`, `AGENTS.md`, `README.md`) from the Assignment 1 specification.
+  * Scaffolding boilerplate code for the Express REST endpoints, SQLite schema, Vue 3 views/layouts, and automated test cases (Vitest, Supertest, Playwright).
+* **Manual Engineering & Verification:** Both team members manually designed the system scope, configured the MapLibre GL JS integration, reviewed and adapted all generated TypeScript code, executed end-to-end verification against the requirements in `specs/traceability.md`, and take full responsibility for the final implementation.
+
+---
+
+## 9. Authors (Group I)
+
+* **Han Kieu** (`hankieu`)
+* **Léonard Clément** (`Uhrbaan`)
