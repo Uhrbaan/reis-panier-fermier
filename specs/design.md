@@ -116,8 +116,8 @@ Le jeton est signé avec `JWT_SECRET` (obligatoire si `NODE_ENV=production`, rep
 
 ### Espace Client & Public (`/api/client/*`)
 
-* `GET /api/client/farms` — Retourne toutes les fermes au statut `APPROVED` (`C1-F1`).
-* `GET /api/client/farms/:id` — Détails d'une ferme approuvée + liste de ses produits (`C1-F2`).
+* `GET /api/client/farms` — Retourne toutes les fermes au statut `APPROVED` (`C1-F1`). **Implémenté** (`backend/src/routes/client.ts`, public, sans authentification).
+* `GET /api/client/farms/:id` — Détails d'une ferme approuvée + liste de ses produits (`C1-F2`). **Implémenté** : retourne `404` si la ferme n'existe pas ou n'est pas `APPROVED`.
 * `POST /api/client/baskets` — Crée une demande de panier (`C1-F3`, `C3-F3`).
 * `GET /api/client/baskets` — Liste les paniers du client connecté.
 * `PATCH /api/client/baskets/:id/respond` — Accepte (`CONFIRMED`) ou refuse (`REJECTED`) une offre (`C1-F4`).

@@ -1,43 +1,57 @@
 <script setup lang="ts">
-import { ref, computed, watchEffect } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { farms, type Farm, type PaymentMethod } from "../data/farms";
+import { fetchFarmById, paymentMethodLabel, type Farm, type PaymentMethod } from "../api";
 
 const route = useRoute();
 const router = useRouter();
 
 const farm = ref<Farm | null>(null);
+const loading = ref(true);
+const loadError = ref<string | null>(null);
 const quantities = ref<Record<number, number>>({});
 const selectedPayment = ref<PaymentMethod | "">("");
 const orderSubmitted = ref(false);
 
 const MAX_QTY = 50;
 
-watchEffect(() => {
+async function loadFarm() {
   const id = Number(route.params.id);
-  const found = farms.find((f) => f.id === id) ?? null;
-  farm.value = found;
+  loading.value = true;
+  loadError.value = null;
+  farm.value = null;
   orderSubmitted.value = false;
 
-  if (found) {
+  try {
+    const found = await fetchFarmById(id);
+    farm.value = found;
     quantities.value = Object.fromEntries(found.products.map((p) => [p.id, 0]));
     selectedPayment.value = found.paymentMethods[0] ?? "";
+  } catch {
+    loadError.value = "Ferme introuvable ou non approuvée.";
+  } finally {
+    loading.value = false;
   }
-});
+}
+
+onMounted(loadFarm);
+watch(() => route.params.id, loadFarm);
 
 function setQty(productId: number, value: number) {
   const clean = Number.isFinite(value) ? Math.floor(value) : 0;
   quantities.value[productId] = Math.min(MAX_QTY, Math.max(0, clean));
 }
 
+// Products have no stock/availability flag (`C2-F3`): the producer adjusts the
+// basket afterwards (`C2-F5`), so every catalog item is requestable.
 const basketLines = computed(() => {
   if (!farm.value) return [];
   return farm.value.products
-    .filter((p) => p.available && (quantities.value[p.id] || 0) > 0)
+    .filter((p) => (quantities.value[p.id] || 0) > 0)
     .map((p) => ({
       product: p,
-      quantity: quantities.value[p.id],
-      lineTotal: p.unitPrice * quantities.value[p.id],
+      quantity: quantities.value[p.id] ?? 0,
+      lineTotal: p.unitPrice * (quantities.value[p.id] ?? 0),
     }));
 });
 
@@ -63,15 +77,28 @@ function submitOrder() {
 </script>
 
 <template>
-  <div v-if="farm" class="mx-auto max-w-3xl pb-12">
+  <div v-if="loading" class="p-8 text-center text-gray-600">Chargement de la ferme…</div>
+
+  <div v-else-if="farm" class="mx-auto max-w-3xl pb-12">
     <nav class="p-3">
       <button type="button" class="text-sm text-green-700 hover:underline" @click="router.push('/')">
         ← Retour à la carte
       </button>
     </nav>
 
-    <!-- 1. Bannière photo -->
-    <img :src="farm.bannerUrl" :alt="farm.name" class="h-60 w-full object-cover" />
+    <!-- 1. Bannière photo (nullable tant que le producteur n'a rien téléversé) -->
+    <img
+      v-if="farm.bannerUrl"
+      :src="farm.bannerUrl"
+      :alt="farm.name"
+      class="h-60 w-full object-cover"
+    />
+    <div
+      v-else
+      class="flex h-60 w-full items-center justify-center bg-green-50 text-6xl"
+    >
+      🌾
+    </div>
 
     <main class="space-y-6 px-4 pt-6">
       <!-- 2. Nom de la ferme -->
@@ -112,24 +139,23 @@ function submitOrder() {
               v-for="product in farm.products"
               :key="product.id"
               class="border-b border-gray-100"
-              :class="{ 'opacity-50': !product.available }"
             >
               <td class="py-2.5 font-medium">{{ product.name }}</td>
               <td class="py-2.5">{{ product.unitPrice.toFixed(2) }} CHF / {{ product.unit }}</td>
               <td class="py-2.5">
-                <div v-if="product.available" class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5">
                   <button
                     type="button"
                     class="h-7 w-7 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40"
-                    :disabled="quantities[product.id] <= 0"
-                    @click="setQty(product.id, quantities[product.id] - 1)"
+                    :disabled="(quantities[product.id] ?? 0) <= 0"
+                    @click="setQty(product.id, (quantities[product.id] ?? 0) - 1)"
                   >
                     -
                   </button>
                   <input
                     type="number"
                     class="w-14 rounded border border-gray-300 py-0.5 text-center"
-                    :value="quantities[product.id]"
+                    :value="quantities[product.id] ?? 0"
                     min="0"
                     :max="MAX_QTY"
                     @input="setQty(product.id, Number(($event.target as HTMLInputElement).value))"
@@ -137,18 +163,20 @@ function submitOrder() {
                   <button
                     type="button"
                     class="h-7 w-7 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40"
-                    :disabled="quantities[product.id] >= MAX_QTY"
-                    @click="setQty(product.id, quantities[product.id] + 1)"
+                    :disabled="(quantities[product.id] ?? 0) >= MAX_QTY"
+                    @click="setQty(product.id, (quantities[product.id] ?? 0) + 1)"
                   >
                     +
                   </button>
                   <span class="ml-1 text-xs text-gray-500">{{ product.unit }}</span>
                 </div>
-                <span v-else class="italic text-gray-500">Indisponible</span>
               </td>
             </tr>
           </tbody>
         </table>
+        <p v-if="farm.products.length === 0" class="text-sm italic text-gray-500">
+          Ce producteur n’a pas encore publié de produit.
+        </p>
       </section>
 
       <!-- 7. Paiements acceptés -->
@@ -161,15 +189,11 @@ function submitOrder() {
             class="flex cursor-pointer items-center gap-2 text-sm"
           >
             <input type="radio" :value="method" v-model="selectedPayment" />
-            <span>{{ method }}</span>
+            <span>{{ paymentMethodLabel(method) }}</span>
           </label>
         </div>
         <p class="mt-2 text-xs text-gray-500">
-          {{
-            selectedPayment === "Online"
-              ? "Paiement garanti via la plateforme (fonds en séquestre pendant 7 jours, commission fixe appliquée lors de l'offre finale)."
-              : "Règlement direct au producteur lors du retrait à la ferme, sans frais de plateforme."
-          }}
+          Règlement direct au producteur lors du retrait à la ferme, sans frais de plateforme.
         </p>
       </section>
 
@@ -205,7 +229,7 @@ function submitOrder() {
   </div>
 
   <div v-else class="p-8 text-center text-gray-600">
-    Ferme introuvable.
+    {{ loadError ?? "Ferme introuvable." }}
     <button type="button" class="ml-2 text-green-700 underline" @click="router.push('/')">
       Retour à la carte
     </button>

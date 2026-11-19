@@ -4,8 +4,8 @@
 
 | ID | Nom | Statut A2 | Composants / Fichiers liés | Preuves de test |
 | :--- | :--- | :--- | :--- | :--- |
-| `C1-F1` | Exploration carte | **Implémenté** | `FarmMap.vue`, `GET /api/client/farms` | `tests/e2e/client-flow.spec.ts` |
-| `C1-F2` | Consultation vitrine | **Implémenté** | `FarmDetailView.vue`, `GET /api/client/farms/:id` | `tests/integration/client.test.ts` |
+| `C1-F1` | Exploration carte | **Implémenté** | `FarmMap.vue`, `GET /api/client/farms` (public, `APPROVED` only) | `tests/e2e/client-flow.spec.ts` |
+| `C1-F2` | Consultation vitrine | **Implémenté** | `FarmDetailView.vue`, `GET /api/client/farms/:id` (public, `404` si non approuvée) | `tests/integration/client.test.ts` |
 | `C1-F3` | Composition panier et paiement | **Implémenté (adapté)** | `BasketDrawer.vue`, `POST /api/client/baskets` | `tests/integration/baskets.test.ts` |
 | `C1-F4` | Acceptation ou refus offre | **Implémenté (adapté)** | `MyBasketsView.vue`, `PATCH /api/client/baskets/:id/respond` | `tests/e2e/negotiation.spec.ts` |
 | `C1-F5` | Paiement en ligne garanti | **Reporté (Deferred)** | *Exclu du périmètre A2* | N/A |

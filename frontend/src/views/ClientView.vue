@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { farms, type Farm } from "../data/farms";
+import { fetchApprovedFarms, paymentMethodLabel, type Farm } from "../api";
 
 const router = useRouter();
 const mapContainer = ref<HTMLElement | null>(null);
+const farms = ref<Farm[]>([]);
+const loading = ref(true);
+const error = ref<string | null>(null);
 let map: any = null;
 
 const truncate = (text: string, max = 350) =>
@@ -31,23 +34,25 @@ function buildPopup(farm: Farm): HTMLElement {
   el.className = "w-80 max-h-96 overflow-y-auto text-gray-900";
 
   const items = farm.products
-    .map(
-      (p) =>
-        `<li>${p.name} — ${p.unitPrice.toFixed(2)} CHF / ${p.unit}${
-          !p.available ? " <em>(indisponible)</em>" : ""
-        }</li>`
-    )
+    .map((p) => `<li>${p.name} — ${p.unitPrice.toFixed(2)} CHF / ${p.unit}</li>`)
     .join("");
 
+  // `bannerUrl` is nullable in SQLite (no upload yet, `C2-F1`).
+  const banner = farm.bannerUrl
+    ? `<img src="${farm.bannerUrl}" alt="${farm.name}" class="block h-28 w-full object-cover" />`
+    : `<div class="flex h-28 w-full items-center justify-center bg-green-50 text-3xl">🌾</div>`;
+
   el.innerHTML = `
-    <img src="${farm.bannerUrl}" alt="${farm.name}" class="block h-28 w-full object-cover" />
+    ${banner}
     <div class="p-3 space-y-2">
       <div class="flex items-baseline justify-between gap-2">
         <h3 class="text-base font-bold">${farm.name}</h3>
         <a href="/ferme/${farm.id}" class="shrink-0 text-sm font-semibold text-green-700 hover:underline">ouvrir →</a>
       </div>
       <p class="text-xs leading-relaxed text-gray-700">${truncate(farm.description)}</p>
-      <p class="text-xs"><strong>Paiements :</strong> ${farm.paymentMethods.join(", ")}</p>
+      <p class="text-xs"><strong>Paiements :</strong> ${farm.paymentMethods
+        .map(paymentMethodLabel)
+        .join(", ")}</p>
       <div class="text-xs">
         <strong>Produits :</strong>
         <ul class="mt-1 list-disc pl-4">${items}</ul>
@@ -76,7 +81,18 @@ onMounted(async () => {
 
   map.addControl(new maplibregl.NavigationControl(), "top-right");
 
-  farms.forEach((farm) => {
+  // Farms come from SQLite through `GET /api/client/farms` (`C1-F1`).
+  // The endpoint only ever returns APPROVED farms.
+  try {
+    farms.value = await fetchApprovedFarms();
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "Chargement impossible";
+    return;
+  } finally {
+    loading.value = false;
+  }
+
+  farms.value.forEach((farm) => {
     const marker = document.createElement("div");
     marker.className =
       "flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-green-700 bg-white text-base shadow";
@@ -98,8 +114,13 @@ onUnmounted(() => map?.remove());
 
 <template>
   <div class="flex h-[calc(100vh-45px)] flex-col">
-    <header class="border-b border-gray-200 px-4 py-2">
+    <header class="flex items-baseline justify-between border-b border-gray-200 px-4 py-2">
       <h1 class="text-lg font-bold">PanierFermier</h1>
+      <p class="text-xs text-gray-500">
+        <span v-if="loading">Chargement des fermes…</span>
+        <span v-else-if="error" class="text-red-600">{{ error }}</span>
+        <span v-else>{{ farms.length }} ferme(s) approuvée(s)</span>
+      </p>
     </header>
     <div ref="mapContainer" class="w-full flex-1"></div>
   </div>

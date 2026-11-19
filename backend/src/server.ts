@@ -4,6 +4,7 @@ import cors from 'cors';
 import { PORT } from './config/env.js';
 import { db } from './db.js';
 import { requireAuth, requireRole } from './middleware/auth.js';
+import { clientRouter } from './routes/client.js';
 import { seedDatabase } from './seed.js';
 
 const app = express();
@@ -23,6 +24,9 @@ if (seedDatabase(db)) {
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
+
+// Public client browsing: approved farms only (`C1-F1`, `C1-F2`).
+app.use('/api/client', clientRouter);
 
 // 1. Any authenticated user
 app.get('/api/client/hello', requireAuth, (req: Request, res: Response) => {
