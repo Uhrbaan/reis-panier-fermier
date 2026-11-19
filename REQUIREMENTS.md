@@ -20,6 +20,8 @@
 Generate the diagrams with [`plantuml -tsvg REQUIREMENTS.md`](https://plantuml.com/fr/).
 Generate the table of contents with [`md_toc --in-place --skip-lines 1 github REQUIREMENTS.md`](https://github.com/frnmst/md-toc).
 
+Project planning: https://tasks.uhrbaan.ch/share/h3w8UJ96AC71giYVGlKsHuYyq5EgftbV9oPa5MPm/auth?view=44
+
 ## Table of contents
 
 <!--TOC-->
