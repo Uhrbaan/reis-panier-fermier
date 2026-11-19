@@ -84,5 +84,5 @@ plantuml -tsv REQUIREMENTS.md
 
 ## Authors
 
-* **Han Kieu**
+* **Ngoc Han Kieu**
 * **Léonard Clément**
