@@ -4,6 +4,8 @@
 // instead of the former hardcoded `data/farms.ts`. Field names are camelCase
 // because the server maps the SQLite snake_case columns in its DTOs.
 
+import { authHeaders } from "./auth";
+
 export type PaymentMethod = "CASH" | "TWINT_FARM" | "CARD_FARM";
 
 export interface Product {
@@ -63,4 +65,117 @@ export async function fetchApprovedFarms(): Promise<Farm[]> {
 export async function fetchFarmById(id: number): Promise<Farm> {
   const data = await getJson<{ farm: Farm }>(`/client/farms/${id}`);
   return data.farm;
+}
+
+/** Lit une réponse JSON et lève une erreur lisible si le statut HTTP échoue. */
+async function handleResponse<T>(response: Response): Promise<T> {
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const msg =
+      (data && (data.error || data.message)) ||
+      `Erreur HTTP ${response.status}`;
+    throw new Error(msg);
+  }
+  return data as T;
+}
+
+/** Récupère la ferme du producteur connecté, ou `null` s'il n'en a pas encore créé (404). */
+export async function fetchMyFarm(): Promise<Farm | null> {
+  const response = await fetch(`${API_BASE}/farmer/farm`, {
+    headers: { Accept: "application/json", ...authHeaders() },
+  });
+
+  if (response.status === 404) return null;
+  const data = await handleResponse<{ farm?: Farm } & Farm>(response);
+  return data.farm ?? data;
+}
+
+export interface FarmFormPayload {
+  name: string;
+  address: string;
+  openingHours: string;
+  description: string;
+  paymentMethods: PaymentMethod[];
+  bannerFile: File | null;
+}
+
+/** Crée (POST) ou met à jour (PUT) la vitrine producteur en multipart/form-data (`C2-F1`, `C2-F2`, `C2-F4`). */
+export async function saveMyFarm(
+  payload: FarmFormPayload,
+  isEditing: boolean
+): Promise<Farm> {
+  const formData = new FormData();
+  formData.append("name", payload.name.trim());
+  formData.append("address", payload.address.trim());
+  formData.append("openingHours", payload.openingHours.trim());
+  formData.append("description", payload.description.trim());
+  formData.append("paymentMethods", JSON.stringify(payload.paymentMethods));
+
+  if (payload.bannerFile) {
+    formData.append("banner", payload.bannerFile);
+  }
+
+  // Important : ne PAS mettre "Content-Type" à la main avec FormData,
+  // le navigateur ajoute automatiquement "multipart/form-data; boundary=...".
+  const response = await fetch(`${API_BASE}/farmer/farm`, {
+    method: isEditing ? "PUT" : "POST",
+    headers: { Accept: "application/json", ...authHeaders() },
+    body: formData,
+  });
+
+  const data = await handleResponse<{ farm?: Farm } & Farm>(response);
+  return data.farm ?? data;
+}
+
+export interface ProductInput {
+  name: string;
+  unit: string;
+  unitPrice: number;
+}
+
+/** Ajoute un produit sans stock au catalogue (`C2-F3`). */
+export async function createProduct(input: ProductInput): Promise<Product> {
+  const response = await fetch(`${API_BASE}/farmer/products`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(input),
+  });
+
+  const data = await handleResponse<{ product?: Product } & Product>(response);
+  return data.product ?? data;
+}
+
+/** Modifie un produit existant (`C2-F3`). */
+export async function updateProduct(
+  productId: number,
+  input: ProductInput
+): Promise<Product> {
+  const response = await fetch(`${API_BASE}/farmer/products/${productId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(input),
+  });
+
+  const data = await handleResponse<{ product?: Product } & Product>(response);
+  return data.product ?? data;
+}
+
+/** Supprime un produit du catalogue (`C2-F3`). */
+export async function deleteProduct(productId: number): Promise<void> {
+  const response = await fetch(`${API_BASE}/farmer/products/${productId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json", ...authHeaders() },
+  });
+
+  if (!response.ok) {
+    await handleResponse(response);
+  }
 }
