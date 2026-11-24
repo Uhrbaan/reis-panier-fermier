@@ -19,3 +19,7 @@
 github-markdown-light.css
 REQUIREMENTS.pdf
 .markdownlint.json
+
+# Local runtime artefacts (not committed)
+# `backend/data/` is already covered by backend/.gitignore
+backend/uploads/
