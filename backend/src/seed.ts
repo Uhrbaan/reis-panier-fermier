@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 
 import { hashPassword } from './services/passwords.js';
+import { renderDescription } from './services/markdown.js';
 import { countUsers, insertUser } from './repositories/users.js';
 import type { PaymentMethod } from './types/models.js';
 
@@ -91,13 +92,16 @@ function insertFarm(db: Database.Database, ownerId: number, farm: SeedFarm): num
   const result = db
     .prepare(
       `INSERT INTO farms
-         (owner_id, name, description, address, latitude, longitude, banner_url, opening_hours, payment_methods, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (owner_id, name, description, description_html, address, latitude, longitude, banner_url, opening_hours, payment_methods, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       ownerId,
       farm.name,
       farm.description,
+      // Seeded descriptions go through the same rendering pipeline as
+      // producer-submitted ones (`ADR-04`), so demo data is never unsanitised.
+      renderDescription(farm.description),
       farm.address,
       farm.latitude,
       farm.longitude,

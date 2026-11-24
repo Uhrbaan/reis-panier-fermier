@@ -40,3 +40,11 @@ export function insertUser(db: Database.Database, user: NewUser): number {
     .run(user.name, user.email, user.password_hash, user.role);
   return Number(result.lastInsertRowid);
 }
+
+/** Whether an e-mail is already taken (case-insensitive, matching the lookup). */
+export function emailExists(db: Database.Database, email: string): boolean {
+  const row = db
+    .prepare('SELECT 1 AS found FROM users WHERE email = ? COLLATE NOCASE')
+    .get(email.trim()) as { found: number } | undefined;
+  return row !== undefined;
+}

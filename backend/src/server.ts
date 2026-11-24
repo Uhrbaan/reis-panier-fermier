@@ -1,11 +1,15 @@
-import express, { type Request, type Response } from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
+import multer from 'multer';
 
 import { PORT } from './config/env.js';
 import { db } from './db.js';
-import { requireAuth, requireRole } from './middleware/auth.js';
+import { adminRouter } from './routes/admin.js';
+import { authRouter } from './routes/auth.js';
 import { clientRouter } from './routes/client.js';
+import { farmerRouter } from './routes/farmer.js';
 import { seedDatabase } from './seed.js';
+import { UPLOADS_DIR, UPLOADS_URL_PREFIX } from './services/uploads.js';
 
 const app = express();
 
@@ -17,30 +21,66 @@ if (seedDatabase(db)) {
   console.log('[db] Demo dataset seeded (1 admin, 1 client, 2 farms).');
 }
 
-/**
- * Temporary smoke routes proving the JWT middlewares are wired correctly.
- * They will be replaced by the real role routers in T2.2 / T3.2.
- */
+// Locally stored farm banners (`C2-F1`, ADR-03).
+app.use(UPLOADS_URL_PREFIX, express.static(UPLOADS_DIR, { fallthrough: true, maxAge: '1h' }));
+
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
+// Authentication — register / login / current profile (`T1.3`).
+app.use('/api/auth', authRouter);
+
 // Public client browsing: approved farms only (`C1-F1`, `C1-F2`).
 app.use('/api/client', clientRouter);
 
-// 1. Any authenticated user
-app.get('/api/client/hello', requireAuth, (req: Request, res: Response) => {
-  res.json({ message: `Hello Client 🥕 (${req.user?.name})` });
-});
+// Producer area — role isolation enforced server-side (`C2-F1` … `C2-F4`).
+app.use('/api/farmer', farmerRouter);
 
-// 2. Producer area — role isolation (`C2-F1` … `C2-F5`)
-app.get('/api/farmer/hello', requireAuth, requireRole('FARMER'), (req: Request, res: Response) => {
-  res.json({ message: `Hello Producteur 🚜 (${req.user?.name})` });
-});
+// Administration — farm validation (`C3-F1`).
+app.use('/api/admin', adminRouter);
 
-// 3. Admin area — role isolation (`C3-F1`)
-app.get('/api/admin/hello', requireAuth, requireRole('ADMIN'), (req: Request, res: Response) => {
-  res.json({ message: `Hello Admin 🛡️ (${req.user?.name})` });
+/**
+ * Central error handler.
+ *
+ * Upload and body-parser failures must not leak stack traces, and the frontend
+ * relies on a consistent `{ error, message }` shape to display a readable
+ * message (see `handleResponse` in `frontend/src/api.ts`).
+ */
+app.use((error: unknown, _req: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+
+  if (error instanceof multer.MulterError) {
+    const message =
+      error.code === 'LIMIT_FILE_SIZE'
+        ? 'The banner image is too large (maximum 5 MB).'
+        : `Upload failed: ${error.message}`;
+    res.status(400).json({ error: 'UPLOAD_ERROR', message });
+    return;
+  }
+
+  if (error instanceof Error) {
+    // Multer's `fileFilter` rejects with a plain Error for a wrong mime type.
+    if (error.message.includes('Banner must be')) {
+      res.status(400).json({ error: 'UPLOAD_ERROR', message: error.message });
+      return;
+    }
+
+    // Malformed JSON bodies surface as a SyntaxError with a `body` property.
+    if ('body' in error) {
+      res.status(400).json({ error: 'BAD_REQUEST', message: 'Malformed JSON body.' });
+      return;
+    }
+
+    console.error('[api] Unhandled error:', error);
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Unexpected server error.' });
+    return;
+  }
+
+  res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Unexpected server error.' });
 });
 
 app.listen(PORT, () => {

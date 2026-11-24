@@ -3,6 +3,7 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 
 import { DB_PATH } from './config/env.js';
+import { renderDescription } from './services/markdown.js';
 
 /**
  * SQLite schema for PanierFermier.
@@ -16,6 +17,10 @@ import { DB_PATH } from './config/env.js';
  *    availability is negotiated per basket (`C2-F5`), not tracked as inventory.
  *  - `farms.payment_methods` stays a JSON array text column so an
  *    `ONLINE_ESCROW` mode can be added later without a migration (`ADR-01`).
+ *
+ * `farms.description` keeps the producer's raw Markdown; `description_html` is
+ * the sanitised rendition served to clients (`ADR-04`). Keeping both means the
+ * rendition can be recomputed if the sanitiser allowlist ever changes.
  */
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS users (
@@ -31,6 +36,7 @@ CREATE TABLE IF NOT EXISTS farms (
   owner_id INTEGER NOT NULL REFERENCES users(id),
   name TEXT NOT NULL,
   description TEXT NOT NULL,
+  description_html TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL,
   latitude REAL NOT NULL,
   longitude REAL NOT NULL,
@@ -114,6 +120,58 @@ export function createDatabase(databasePath: string = resolveDatabasePath()): Da
 /** Create every table and index if missing. Safe to run on each boot. */
 export function initializeSchema(connection: Database.Database): void {
   connection.exec(SCHEMA_SQL);
+  applyMigrations(connection);
+}
+
+interface TableColumn {
+  name: string;
+}
+
+/**
+ * Additive migrations for databases created by an earlier build.
+ *
+ * `CREATE TABLE IF NOT EXISTS` never alters an existing table, and the local
+ * `backend/data/panierfermier.db` already exists, so new columns must be added
+ * explicitly. Each step is guarded by a column check, making this idempotent
+ * and safe to run on every boot.
+ */
+function applyMigrations(connection: Database.Database): void {
+  const farmColumns = connection
+    .prepare('PRAGMA table_info(farms)')
+    .all() as TableColumn[];
+
+  if (!farmColumns.some((column) => column.name === 'description_html')) {
+    connection.exec("ALTER TABLE farms ADD COLUMN description_html TEXT NOT NULL DEFAULT ''");
+  }
+
+  // Backfill rows written before the rendition existed, so already-seeded farms
+  // are not served with an empty description.
+  backfillDescriptionHtml(connection);
+}
+
+/**
+ * Recompute `description_html` for any farm whose rendition is missing.
+ *
+ * `services/markdown.ts` has no database dependency, so this import cannot
+ * create a cycle.
+ */
+function backfillDescriptionHtml(connection: Database.Database): void {
+  const rows = connection
+    .prepare("SELECT id, description FROM farms WHERE description_html = '' AND description <> ''")
+    .all() as Array<{ id: number; description: string }>;
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  const update = connection.prepare('UPDATE farms SET description_html = ? WHERE id = ?');
+  const backfill = connection.transaction(() => {
+    for (const row of rows) {
+      update.run(renderDescription(row.description), row.id);
+    }
+  });
+
+  backfill();
 }
 
 const db = createDatabase();
