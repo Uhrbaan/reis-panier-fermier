@@ -1,27 +1,27 @@
-# System Overview — PanierFermier (Sprints A2)
+# System Overview — PanierFermier (A2 Sprints)
 
 ## 1. Product Vision & Scope (A2 Prototype)
 
-**PanierFermier** est une application web de mise en relation directe entre producteurs locaux et consommateurs permettant de repérer les fermes sur une carte interactive respectueuse de la vie privée et de réserver des paniers ajustables avant retrait sur place.
+**PanierFermier** is a web application that directly connects local producers with consumers, allowing users to locate farms on a privacy-respecting interactive map and to reserve adjustable baskets for on-site collection.
 
-### Périmètre retenu pour l'Assignment 2
-* **Inclus :** Exploration cartographique sans GPS (MapLibre GL JS + OpenStreetMap), consultation des vitrines, création/gestion de vitrine avec upload de bannière, catalogue produits sans gestion de stock, négociation de panier (retrait d'articles indisponibles par le producteur), paiement sur place sans frais, approbation manuelle des fermes par l'administrateur et système de notifications internes extensibles.
-* **Exclus / Reportés (Deferred) :** L'intégration de paiement en ligne via Stripe, le séquestre de 7 jours et le module d'arbitrage de litiges financiers (`C1-F5`, `C3-F4`, `C3-F5`, `C1-NF2`) sont volontairement exclus de ce prototype.
+### Scope retained for Assignment 2
+* **Included:** GPS-free map exploration (MapLibre GL JS + OpenStreetMap), storefront browsing, storefront creation and management with banner upload, product catalogue without stock management, basket negotiation (removal of unavailable items by the producer), fee-free on-site payment, manual approval of farms by the administrator, and an extensible internal notification system.
+* **Excluded / Deferred:** Online payment integration via Stripe, the 7-day escrow and the financial dispute arbitration module (`C1-F5`, `C3-F4`, `C3-F5`, `C1-NF2`) are deliberately excluded from this prototype.
 
 ## 2. Users & Personas
 
-1. **Clara Meylan (Client) :** Consommatrice soucieuse de sa vie privée. Explore la carte sans partage GPS, compose un panier et accepte ou refuse la contre-offre du producteur avant de venir payer et retirer sa commande à la ferme.
-2. **Marc Rochat (Producteur) :** Maraîcher local. Crée sa vitrine (avec photo et adresse obligatoire), gère son catalogue sans suivi de stock et ajuste les paniers demandés selon ses disponibilités réelles.
-3. **Sophie Baumann (Administratrice) :** Valide manuellement les nouvelles exploitations créées avant qu'elles n'apparaissent sur la carte publique.
+1. **Clara Meylan (Client):** A privacy-conscious consumer. She explores the map without sharing her GPS position, composes a basket and accepts or refuses the producer's counter-offer before coming to pay for and collect her order at the farm.
+2. **Marc Rochat (Producer):** A local market gardener. He creates his storefront (with a photo and a mandatory address), manages his catalogue without stock tracking and adjusts requested baskets according to his actual availability.
+3. **Sophie Baumann (Administrator):** She manually validates newly created farms before they appear on the public map.
 
 ## 3. Main Scenarios (Active in A2)
 
-* **Scénario 1 (Création et validation d'une ferme) :** Marc crée sa vitrine (`C2-F1`, `C2-F2`, `C2-F3`). Elle reste masquée jusqu'à l'approbation manuelle de Sophie (`C3-F1`). Les modifications ultérieures de Marc sont publiées immédiatement (`C2-F4`).
-* **Scénario 2 & 3 adaptés (Découverte et réservation avec paiement sur place) :** Clara explore la carte autour de Fribourg sans GPS (`C1-F1`, `C1-NF1`), consulte la fiche de Marc (`C1-F2`) et soumet un panier avec paiement à la ferme (`C1-F3`). Marc reçoit une notification interne (`C3-F2`), retire un article manquant et valide le prix recalculé sans commission (`C2-F5`, `C3-F3`). Clara est notifiée et confirme la commande ferme (`C1-F4`).
+* **Scenario 1 (Farm creation and validation):** Marc creates his storefront (`C2-F1`, `C2-F2`, `C2-F3`). It remains hidden until Sophie's manual approval (`C3-F1`). Marc's subsequent modifications are published immediately (`C2-F4`).
+* **Scenarios 2 & 3 adapted (Discovery and reservation with on-site payment):** Clara explores the map around Fribourg without GPS (`C1-F1`, `C1-NF1`), consults Marc's page (`C1-F2`) and submits a basket with on-site payment (`C1-F3`). Marc receives an internal notification (`C3-F2`), removes an unavailable item and validates the recalculated price without commission (`C2-F5`, `C3-F3`). Clara is notified and confirms the firm order (`C1-F4`).
 
 ## 4. Reference to Assignment 1 Models
 
-Les modèles conceptuels complets sont définis dans [`REQUIREMENTS.md`](../REQUIREMENTS.md) :
-* **Information Flow Diagram :** Section 3.1 (`assets/diagrams/info-flow.svg`) — *hors flux externe Stripe*.
-* **Use Case Diagram :** Section 3.2 (`assets/diagrams/use-case.svg`) — *cas d'utilisation UC1 à UC4 et UC6 à UC8*.
-* **Domain Model :** Section 3.3 (`assets/diagrams/domain-model.svg`) — *entités Utilisateur, Ferme, Produit, Panier, LignePanier*.
+The complete conceptual models are defined in [`REQUIREMENTS.md`](../REQUIREMENTS.md):
+* **Information Flow Diagram:** Section 3.1 (`assets/diagrams/info-flow.svg`) — *excluding the external Stripe flow*.
+* **Use Case Diagram:** Section 3.2 (`assets/diagrams/use-case.svg`) — *use cases UC1 to UC4 and UC6 to UC8*.
+* **Domain Model:** Section 3.3 (`assets/diagrams/domain-model.svg`) — *entities User, Farm, Product, Basket, BasketLine*.

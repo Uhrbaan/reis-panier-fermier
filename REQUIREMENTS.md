@@ -17,7 +17,7 @@
 | --- | --- | --- | --- |
 | 0.1 | 16.11.2026 | Initial requirements submission | Han Kieu, Léonard Clément |
 
-Generate the diagrams with [`plantuml -tsvg REQUIREMENTS.md`](https://plantuml.com/fr/).
+Generate the diagrams with [`plantuml -tsvg REQUIREMENTS.md`](https://plantuml.com/).
 Generate the table of contents with [`md_toc --in-place --skip-lines 1 github REQUIREMENTS.md`](https://github.com/frnmst/md-toc).
 
 Project planning: https://tasks.uhrbaan.ch/share/h3w8UJ96AC71giYVGlKsHuYyq5EgftbV9oPa5MPm/auth?view=44
@@ -30,47 +30,47 @@ Project planning: https://tasks.uhrbaan.ch/share/h3w8UJ96AC71giYVGlKsHuYyq5Egftb
 - [1. Project Goal or Product Vision](#1-project-goal-or-product-vision)
 - [2. Users and Scenarios](#2-users-and-scenarios)
   - [2.1. Personas](#21-personas)
-    - [2.1.1. Clara Meylan — La consommatrice locale soucieuse de sa vie privée (Client)](#211-clara-meylan--la-consommatrice-locale-soucieuse-de-sa-vie-privée-client)
-    - [2.1.2 Marc Rochat — Le maraîcher et producteur polyvalent (Producteur)](#212-marc-rochat--le-maraîcher-et-producteur-polyvalent-producteur)
-    - [2.1.3. Sophie Baumann — La coordinatrice des opérations (Administratrice)](#213-sophie-baumann--la-coordinatrice-des-opérations-administratrice)
+    - [2.1.1. Clara Meylan — The privacy-conscious local consumer (Client)](#211-clara-meylan--the-privacy-conscious-local-consumer-client)
+    - [2.1.2. Marc Rochat — The versatile market gardener and producer (Producer)](#212-marc-rochat--the-versatile-market-gardener-and-producer-producer)
+    - [2.1.3. Sophie Baumann — The operations coordinator (Administrator)](#213-sophie-baumann--the-operations-coordinator-administrator)
   - [2.2. Scenarios](#22-scenarios)
-    - [Scénario 1](#scénario-1)
-    - [Scénario 2](#scénario-2)
-    - [Scénario 3](#scénario-3)
-    - [Scénario 4](#scénario-4)
+    - [Scenario 1](#scenario-1)
+    - [Scenario 2](#scenario-2)
+    - [Scenario 3](#scenario-3)
+    - [Scenario 4](#scenario-4)
 - [3. System Overview](#3-system-overview)
   - [3.1. Information Flow Diagram](#31-information-flow-diagram)
   - [3.2. Use Case Diagram(s)](#32-use-case-diagrams)
   - [3.3. Conceptual UML Class Diagram (Domain Model)](#33-conceptual-uml-class-diagram-domain-model)
 - [4. Detailed Requirements](#4-detailed-requirements)
   - [4.1. Functional Requirements](#41-functional-requirements)
-    - [4.1.1. Catégorie 1 - Découverte des fermes et commande de paniers (Client)](#411-catégorie-1---découverte-des-fermes-et-commande-de-paniers-client)
-      - [C1-F1 - Exploration carte](#c1-f1---exploration-carte)
-      - [C1-F2 - Consultation vitrine](#c1-f2---consultation-vitrine)
-      - [C1-F3 - Composition panier et paiement](#c1-f3---composition-panier-et-paiement)
-      - [C1-F4 - Acceptation ou refus offre](#c1-f4---acceptation-ou-refus-offre)
-      - [C1-F5 - Paiement en ligne garanti](#c1-f5---paiement-en-ligne-garanti)
-    - [4.1.2. Catégorie 2 - Gestion de la vitrine et traitement des paniers (Producteur)](#412-catégorie-2---gestion-de-la-vitrine-et-traitement-des-paniers-producteur)
-      - [C2-F1 - Création vitrine](#c2-f1---création-vitrine)
-      - [C2-F2 - Moyens de paiement](#c2-f2---moyens-de-paiement)
-      - [C2-F3 - Catalogue produits](#c2-f3---catalogue-produits)
-      - [C2-F4 - Mise à jour vitrine](#c2-f4---mise-à-jour-vitrine)
-      - [C2-F5 - Ajustement panier et offre](#c2-f5---ajustement-panier-et-offre)
-    - [4.1.3. Catégorie 3 - Administration, notifications et gestion financière (Système & Admin)](#413-catégorie-3---administration-notifications-et-gestion-financière-système--admin)
-      - [C3-F1 - Approbation ferme](#c3-f1---approbation-ferme)
-      - [C3-F2 - Notifications commande](#c3-f2---notifications-commande)
-      - [C3-F3 - Calcul prix et commission](#c3-f3---calcul-prix-et-commission)
-      - [C3-F4 - Libération fonds 7j](#c3-f4---libération-fonds-7j)
-      - [C3-F5 - Arbitrage litige](#c3-f5---arbitrage-litige)
+    - [4.1.1. Category 1 - Farm discovery and basket ordering (Client)](#411-category-1---farm-discovery-and-basket-ordering-client)
+      - [C1-F1 - Map exploration](#c1-f1---map-exploration)
+      - [C1-F2 - Storefront consultation](#c1-f2---storefront-consultation)
+      - [C1-F3 - Basket composition and payment](#c1-f3---basket-composition-and-payment)
+      - [C1-F4 - Offer acceptance or refusal](#c1-f4---offer-acceptance-or-refusal)
+      - [C1-F5 - Guaranteed online payment](#c1-f5---guaranteed-online-payment)
+    - [4.1.2. Category 2 - Storefront management and basket processing (Producer)](#412-category-2---storefront-management-and-basket-processing-producer)
+      - [C2-F1 - Storefront creation](#c2-f1---storefront-creation)
+      - [C2-F2 - Payment methods](#c2-f2---payment-methods)
+      - [C2-F3 - Product catalogue](#c2-f3---product-catalogue)
+      - [C2-F4 - Storefront update](#c2-f4---storefront-update)
+      - [C2-F5 - Basket adjustment and offer](#c2-f5---basket-adjustment-and-offer)
+    - [4.1.3. Category 3 - Administration, notifications and financial management (System & Admin)](#413-category-3---administration-notifications-and-financial-management-system--admin)
+      - [C3-F1 - Farm approval](#c3-f1---farm-approval)
+      - [C3-F2 - Order notifications](#c3-f2---order-notifications)
+      - [C3-F3 - Price and commission calculation](#c3-f3---price-and-commission-calculation)
+      - [C3-F4 - 7-day fund release](#c3-f4---7-day-fund-release)
+      - [C3-F5 - Dispute arbitration](#c3-f5---dispute-arbitration)
   - [4.2. Non-Functional Requirements](#42-non-functional-requirements)
-    - [4.2.1. Catégorie 1 - Confidentialité et Sécurité](#421-catégorie-1---confidentialité-et-sécurité)
-      - [C1-NF1 - Confidentialité](#c1-nf1---confidentialité)
-      - [C1-NF2 - Sécurité paiements](#c1-nf2---sécurité-paiements)
-    - [4.2.2. Catégorie 2 - Performance et Fiabilité](#422-catégorie-2---performance-et-fiabilité)
-      - [C2-NF1 - Performance carte](#c2-nf1---performance-carte)
-      - [C2-NF2 - Délai notifications](#c2-nf2---délai-notifications)
-    - [4.2.3. Catégorie 3 - Ergonomie](#423-catégorie-3---ergonomie)
-      - [C3-NF1 - Ergonomie vitrine](#c3-nf1---ergonomie-vitrine)
+    - [4.2.1. Category 1 - Privacy and Security](#421-category-1---privacy-and-security)
+      - [C1-NF1 - Privacy](#c1-nf1---privacy)
+      - [C1-NF2 - Payment security](#c1-nf2---payment-security)
+    - [4.2.2. Category 2 - Performance and Reliability](#422-category-2---performance-and-reliability)
+      - [C2-NF1 - Map performance](#c2-nf1---map-performance)
+      - [C2-NF2 - Notification delay](#c2-nf2---notification-delay)
+    - [4.2.3. Category 3 - Ergonomics](#423-category-3---ergonomics)
+      - [C3-NF1 - Storefront ergonomics](#c3-nf1---storefront-ergonomics)
 - [5. System Architecture](#5-system-architecture)
   - [5.1. Client–Server Architecture](#51-clientserver-architecture)
 
@@ -78,71 +78,71 @@ Project planning: https://tasks.uhrbaan.ch/share/h3w8UJ96AC71giYVGlKsHuYyq5Egftb
 
 ## 1. Project Goal or Product Vision
 
-**FOR (Pour) :** Les consommateurs souhaitant acheter des produits frais en circuit court et les producteurs agricoles locaux pratiquant la vente directe à la ferme,
+**FOR:** Consumers wishing to buy fresh produce through short supply chains, and local agricultural producers practising direct farm sales,
 
-**WHO (Qui) :** Ont besoin d'un moyen simple et fiable pour localiser les exploitations à proximité et sécuriser les commandes à retirer sur place sans lourdeur logistique,
+**WHO:** Need a simple and reliable way to locate nearby farms and secure orders to be collected on site without logistical overhead,
 
-**THE (La plateforme) :** **PanierFermier** est une application de découverte et de réservation de paniers producteurs locaux,
+**THE:** **PanierFermier** is a local producer basket discovery and reservation application,
 
-**THAT (Qui) :** Permet aux clients de repérer les fermes sur une carte interactive respectueuse de leur vie privée et de composer un panier ajustable par le producteur avant validation, tout en offrant le choix entre un paiement libre à la ferme (sans frais) ou un paiement garanti par la plateforme (avec séquestre de 7 jours),
+**THAT:** Allows clients to locate farms on a privacy-respecting interactive map and to compose a basket that the producer can adjust before confirmation, while offering a choice between fee-free payment at the farm or payment guaranteed by the platform (with a 7-day escrow),
 
-**UNLIKE (Contrairement à) :** Aux plateformes de e-commerce classiques (rigides sur les stocks et coûteuses en commissions) ou aux simples annuaires statiques qui ne permettent ni réservation ni garantie de paiement,
+**UNLIKE:** Classic e-commerce platforms (rigid about stock and costly in commissions) or simple static directories that allow neither reservation nor payment guarantee,
 
-**OUR SOLUTION (Notre solution) :** Combine la souplesse d'une négociation directe sur la disponibilité des produits frais avec une vitrine personnalisable clé en main pour le producteur et une protection transactionnelle optionnelle.
+**OUR SOLUTION:** Combines the flexibility of a direct negotiation over the availability of fresh produce with a turnkey customisable storefront for the producer and an optional transactional protection.
 
 ## 2. Users and Scenarios
 
 ### 2.1. Personas
 
-Les utilisateurs du système se répartissent en trois groupes distincts : les consommateurs, les producteurs agricoles (producteurs) et les administrateurs de la plateforme.
+The system's users fall into three distinct groups: consumers, agricultural producers (farmers) and platform administrators.
 
-#### 2.1.1. Clara Meylan — La consommatrice locale soucieuse de sa vie privée (Client)
+#### 2.1.1. Clara Meylan — The privacy-conscious local consumer (Client)
 
-**Profil :** 34 ans, architecte à Fribourg, adepte de l'alimentation durable et des circuits courts.
+**Profile:** 34 years old, architect in Fribourg, committed to sustainable food and short supply chains.
 
-**Contexte et activités :** Souhaite acheter des produits frais directement auprès des fermes de sa région le week-end, mais hésite souvent à se déplacer sans garantie sur les produits disponibles ou les horaires réels.
+**Context and activities:** Wants to buy fresh produce directly from farms in her region at the weekend, but often hesitates to travel without any guarantee about the products actually available or the real opening hours.
 
-**Objectifs :** Repérer facilement les exploitations agricoles sur une carte, réserver un panier personnalisé à l'avance et choisir un mode de paiement adapté (paiement sécurisé en ligne ou règlement direct sur place).
+**Objectives:** Easily locate farms on a map, reserve a personalised basket in advance and choose a suitable payment method (secure online payment or direct payment on site).
 
-**Besoins et contraintes :** Refuse de partager sa position GPS en continu ou d'enregistrer son adresse personnelle dans l'application. A besoin d'une confirmation claire avant de prendre la route et d'une garantie financière lorsqu'elle paie à l'avance.
+**Needs and constraints:** Refuses to share her GPS position continuously or to register her personal address in the application. Needs a clear confirmation before setting off, and a financial guarantee when she pays in advance.
 
-#### 2.1.2 Marc Rochat — Le maraîcher et producteur polyvalent (Producteur)
+#### 2.1.2. Marc Rochat — The versatile market gardener and producer (Producer)
 
-**Profil :** 48 ans, exploitant agricole dans le canton de Fribourg (légumes de saison, œufs, fromages).
+**Profile:** 48 years old, farmer in the canton of Fribourg (seasonal vegetables, eggs, cheeses).
 
-**Contexte et activités :** Passe la majorité de son temps aux champs et à la production ; il dispose de peu de temps pour l'administration numérique et ne tient pas d'inventaire informatique précis au quotidien.
+**Context and activities:** Spends most of his time in the fields and on production; he has little time for digital administration and does not keep a precise computerised inventory on a daily basis.
 
-**Objectifs :** Disposer d'une vitrine numérique simple et autonome pour présenter sa ferme, recevoir des commandes de paniers à préparer et sécuriser ses ventes contre les désistements.
+**Objectives:** Have a simple and autonomous digital storefront to present his farm, receive basket orders to prepare, and secure his sales against no-shows.
 
-**Besoins et contraintes :** Ne veut pas gérer de quantités de stock sur la plateforme. A besoin de pouvoir retirer un article manquant d'un panier demandé par un client avant de s'engager, et souhaite pouvoir choisir librement entre encaisser ses clients sur place sans frais (Cash, Carte, TWINT) ou utiliser le paiement garanti de la plateforme.
+**Needs and constraints:** Does not want to manage stock quantities on the platform. Needs to be able to remove a missing item from a basket requested by a client before committing, and wishes to choose freely between collecting payment on site without fees (Cash, Card, TWINT) or using the platform's guaranteed payment.
 
-#### 2.1.3. Sophie Baumann — La coordinatrice des opérations (Administratrice)
+#### 2.1.3. Sophie Baumann — The operations coordinator (Administrator)
 
-**Profil :** 29 ans, membre de l'équipe de gestion de la plateforme.
+**Profile:** 29 years old, member of the platform management team.
 
-**Contexte et activités :** Assure la fiabilité du catalogue des producteurs référencés et intervient comme tiers de confiance en cas d'incident signalé par e-mail ou téléphone.
+**Context and activities:** Ensures the reliability of the catalogue of listed producers and acts as a trusted third party in the event of an incident reported by e-mail or telephone.
 
-**Objectifs :** Vérifier l'authenticité des nouvelles exploitations avant leur publication sur la carte et résoudre équitablement les litiges financiers durant la fenêtre de séquestre de 7 jours.
+**Objectives:** Verify the authenticity of new farms before publishing them on the map, and resolve financial disputes fairly during the 7-day escrow window.
 
-**Besoins et contraintes :** Ne doit pas être sollicitée pour chaque modification courante effectuée par un producteur déjà approuvé (ajout d'un produit, changement d'horaire). A besoin d'un mécanisme administratif clair pour déclencher un remboursement au client ou libérer les fonds au producteur après examen d'une plainte.
+**Needs and constraints:** Must not be solicited for every routine change made by an already approved producer (adding a product, changing opening hours). Needs a clear administrative mechanism to trigger a refund to the client or release the funds to the producer after examining a complaint.
 
 ### 2.2. Scenarios
 
-#### Scénario 1
+#### Scenario 1
 
-Création, validation initiale et mise à jour d'une page ferme (Marc et Sophie) Marc s'inscrit sur la plateforme et configure la vitrine de son exploitation en renseignant sa bannière photo, une description, ses horaires d'ouverture, l'adresse obligatoire de la ferme ainsi que sa liste de produits disponibles (sans saisie de stock) ([C2-F1](#c2-f1---création-vitrine)). Il active également ses moyens de paiement autorisés : le paiement en ligne via la plateforme et le paiement sur place par TWINT ou espèces ([C2-F2](#c2-f2---moyens-de-paiement)). Une fois enregistrée, sa page reste masquée du public ([C3-F1](#c3-f1---approbation-ferme)). Sophie reçoit une alerte, vérifie l'existence de l'exploitation et approuve manuellement la page, qui devient immédiatement visible sur la carte ([C3-F1](#c3-f1---approbation-ferme)). Deux semaines plus tard, Marc ajoute des fraises à sa liste et ajuste ses horaires d'été : ces modifications sont publiées instantanément sans nécessiter de nouvelle validation administrative ([C2-F4](#c2-f4---mise-à-jour-vitrine)).
+Farm page creation, initial validation and update (Marc and Sophie). Marc registers on the platform and configures his farm's storefront by entering his banner photo, a description, his opening hours, the mandatory farm address as well as his list of available products (without entering any stock) ([C2-F1](#c2-f1---storefront-creation)). He also enables his authorised payment methods: online payment through the platform and on-site payment by TWINT or cash ([C2-F2](#c2-f2---payment-methods)). Once saved, his page remains hidden from the public ([C3-F1](#c3-f1---farm-approval)). Sophie receives an alert, verifies that the farm exists and manually approves the page, which immediately becomes visible on the map ([C3-F1](#c3-f1---farm-approval)). Two weeks later, Marc adds strawberries to his list and adjusts his summer opening hours: these changes are published instantly without requiring a new administrative validation ([C2-F4](#c2-f4---storefront-update)).
 
-#### Scénario 2
+#### Scenario 2
 
-Recherche respectueuse de la vie privée et négociation d'un panier (Clara et Marc) Souhaitant préparer un repas local, Clara ouvre l'application et explore manuellement la carte interactive autour de Fribourg, sans qu'aucune donnée GPS ni adresse personnelle ne soit collectée ou stockée ([C1-F1](#c1-f1---exploration-carte), [C1-NF1](#c1-nf1---confidentialité)). Elle sélectionne la ferme de Marc, consulte sa fiche ([C1-F2](#c1-f2---consultation-vitrine)) et compose un panier contenant des tomates, du fromage et un pot de miel, en optant pour le paiement en ligne garanti ([C1-F3](#c1-f3---composition-panier-et-paiement)). Marc reçoit une notification ([C3-F2](#c3-f2---notifications-commande)). Constatant qu'il n'a plus de miel disponible, il retire cet article du panier et valide le prix ajusté proposé automatiquement par la plateforme, incluant la commission fixe ([C2-F5](#c2-f5---ajustement-panier-et-offre)). Clara est notifiée de cette contre-offre ([C3-F2](#c3-f2---notifications-commande)), l'accepte et procède au paiement en ligne ([C1-F4](#c1-f4---acceptation-ou-refus-offre), [C1-F5](#c1-f5---paiement-en-ligne-garanti)). Le montant est placé en séquestre pour 7 jours, la commande devient ferme et non annulable, et Marc prépare le panier ([C1-F5](#c1-f5---paiement-en-ligne-garanti)).
+Privacy-respecting search and basket negotiation (Clara and Marc). Wishing to prepare a local meal, Clara opens the application and manually explores the interactive map around Fribourg, without any GPS data or personal address being collected or stored ([C1-F1](#c1-f1---map-exploration), [C1-NF1](#c1-nf1---privacy)). She selects Marc's farm, consults its page ([C1-F2](#c1-f2---storefront-consultation)) and composes a basket containing tomatoes, cheese and a jar of honey, opting for the guaranteed online payment ([C1-F3](#c1-f3---basket-composition-and-payment)). Marc receives a notification ([C3-F2](#c3-f2---order-notifications)). Noticing that he no longer has any honey available, he removes that item from the basket and validates the adjusted price automatically proposed by the platform, including the fixed commission ([C2-F5](#c2-f5---basket-adjustment-and-offer)). Clara is notified of this counter-offer ([C3-F2](#c3-f2---order-notifications)), accepts it and proceeds with the online payment ([C1-F4](#c1-f4---offer-acceptance-or-refusal), [C1-F5](#c1-f5---guaranteed-online-payment)). The amount is placed in escrow for 7 days, the order becomes firm and non-cancellable, and Marc prepares the basket ([C1-F5](#c1-f5---guaranteed-online-payment)).
 
-#### Scénario 3
+#### Scenario 3
 
-Réservation avec paiement direct à la ferme sans frais (Clara) Clara repère un second producteur proposant des pommes et du cidre, mais n'acceptant que le paiement à la ferme (Carte, TWINT ou Cash). Elle compose son panier et sélectionne le paiement sur place ([C1-F3](#c1-f3---composition-panier-et-paiement)). Le producteur valide le panier sans modification ([C2-F5](#c2-f5---ajustement-panier-et-offre)) et Clara confirme la commande ([C1-F4](#c1-f4---acceptation-ou-refus-offre)). Aucune commission n'est prélevée et aucune garantie financière n'est appliquée par la plateforme ([C3-F3](#c3-f3---calcul-prix-et-commission)). Clara se rend à la ferme aux horaires indiqués et règle directement le producteur lors du retrait.
+Reservation with fee-free direct payment at the farm (Clara). Clara spots a second producer offering apples and cider, but accepting only payment at the farm (Card, TWINT or Cash). She composes her basket and selects on-site payment ([C1-F3](#c1-f3---basket-composition-and-payment)). The producer validates the basket without modification ([C2-F5](#c2-f5---basket-adjustment-and-offer)) and Clara confirms the order ([C1-F4](#c1-f4---offer-acceptance-or-refusal)). No commission is charged and no financial guarantee is applied by the platform ([C3-F3](#c3-f3---price-and-commission-calculation)). Clara goes to the farm at the indicated hours and pays the producer directly on collection.
 
-#### Scénario 4
+#### Scenario 4
 
-Gestion d'un litige durant la période de séquestre de 7 jours (Clara, Marc et Sophie) Dans le cadre d'une commande payée en ligne sur la plateforme, Clara se présente à la ferme aux horaires convenus mais trouve le point de vente fermé et injoignable. Dans le délai de 7 jours suivant son paiement, elle contacte l'administration via l'e-mail ou le numéro de support indiqué sur la plateforme pour déposer une plainte ([C3-F5](#c3-f5---arbitrage-litige)). Sophie instruit manuellement le dossier auprès des deux parties : constatant que le producteur n'a pas permis à la cliente de récupérer son panier comme promis, elle clôture le litige en déclenchant le remboursement intégral de Clara ([C3-F5](#c3-f5---arbitrage-litige)). (À l'inverse, si l'enquête montrait que Marc était présent et disponible mais que Clara avait omis de venir chercher sa commande non annulable, Sophie aurait libéré l'intégralité du paiement en faveur de Marc.)
+Handling a dispute during the 7-day escrow period (Clara, Marc and Sophie). In the context of an order paid online on the platform, Clara arrives at the farm at the agreed hours but finds the point of sale closed and unreachable. Within 7 days of her payment, she contacts the administration through the e-mail address or support number indicated on the platform to file a complaint ([C3-F5](#c3-f5---dispute-arbitration)). Sophie manually investigates the case with both parties: establishing that the producer did not allow the client to collect her basket as promised, she closes the dispute by triggering a full refund to Clara ([C3-F5](#c3-f5---dispute-arbitration)). (Conversely, had the investigation shown that Marc was present and available but Clara had failed to collect her non-cancellable order, Sophie would have released the entire payment in Marc's favour.)
 
 ## 3. System Overview
 
@@ -160,37 +160,37 @@ skinparam ranksep 110
 skinparam defaultTextAlignment center
 
 actor "Client" as Client
-actor "Producteur" as Producteur
-actor "Administrateur" as Admin
+actor "Producer" as Producer
+actor "Administrator" as Admin
 
-rectangle "Plateforme PanierFermier" {
-    component "Système de Réservation\net Gestion" as Sys
+rectangle "PanierFermier Platform" {
+    component "Reservation and\nManagement System" as Sys
 }
 
-cloud "Service de Paiement Externe\n(ex. Stripe / Stripe Connect)" as Paiement
+cloud "External Payment Service\n(e.g. Stripe / Stripe Connect)" as PaymentGateway
 
-' Flux d'informations : Client <-> Système
-Client -down-> Sys : 1. Recherche géographique (sans GPS)\n2. Demande de panier & choix paiement\n3. Acceptation / refus de l'offre
-Sys -up-> Client : 1. Affichage fermes & produits\n2. Notification d'offre ajustée
+' Information flows: Client <-> System
+Client -down-> Sys : 1. Geographical search (no GPS)\n2. Basket request & payment choice\n3. Offer acceptance / refusal
+Sys -up-> Client : 1. Display farms & products\n2. Adjusted offer notification
 
-' Flux d'informations : Producteur <-> Système
-Producteur -down-> Sys : 1. Création / mise à jour vitrine\n2. Ajustement panier & validation offre
-Sys -up-> Producteur : 1. Notification de demande panier\n2. Confirmation commande ferme
+' Information flows: Producer <-> System
+Producer -down-> Sys : 1. Storefront creation / update\n2. Basket adjustment & offer validation
+Sys -up-> Producer : 1. Basket request notification\n2. Firm order confirmation
 
-' Flux d'informations : Admin <-> Système
-Admin -down-> Sys : 1. Approbation / rejet ferme\n2. Ouverture & arbitrage litige
-Sys -up-> Admin : Alerte nouvelle ferme en attente
+' Information flows: Admin <-> System
+Admin -down-> Sys : 1. Farm approval / rejection\n2. Dispute opening & arbitration
+Sys -up-> Admin : New pending farm alert
 
-' Flux d'informations : Système <-> Paiement
-Sys -down-> Paiement : 1. Autorisation & séquestre (7j)\n2. Ordre de virement ou remboursement
-Paiement -up-> Sys : Webhooks confirmation\ntransaction & transfert
+' Information flows: System <-> Payment
+Sys -down-> PaymentGateway : 1. Authorisation & escrow (7d)\n2. Transfer or refund order
+PaymentGateway -up-> Sys : Transaction confirmation\nwebhooks & transfer
 
 @enduml
 ```
 
 </details>
 
-Le **Client** interroge la carte sans transmettre de données GPS ([`C1-NF1`](#c1-nf1---confidentialité)) et soumet une demande de panier à un **Producteur**. Ce dernier est notifié, ajuste les articles selon ses stocks réels et renvoie une offre ferme. Si le paiement en ligne est choisi, le système délègue la transaction et la rétention de 7 jours au **Service de Paiement Externe** (Stripe), qui confirme l'opération par webhook. L'**Administrateur** reçoit une alerte uniquement lors de la création d'une nouvelle vitrine à valider ([`C3-F1`](#c3-f1---approbation-ferme)) et intervient manuellement sur le système lorsqu'un litige lui est signalé par e-mail ou téléphone ([`C3-F5`](#c3-f5---arbitrage-litige)).
+The **Client** queries the map without transmitting any GPS data ([`C1-NF1`](#c1-nf1---privacy)) and submits a basket request to a **Producer**. The latter is notified, adjusts the items according to his real availability and returns a firm offer. If online payment is chosen, the system delegates the transaction and the 7-day retention to the **External Payment Service** (Stripe), which confirms the operation by webhook. The **Administrator** receives an alert only when a new storefront is created and needs validation ([`C3-F1`](#c3-f1---farm-approval)) and intervenes manually on the system when a dispute is reported to her by e-mail or telephone ([`C3-F5`](#c3-f5---dispute-arbitration)).
 
 ### 3.2. Use Case Diagram(s)
 
@@ -204,38 +204,38 @@ left to right direction
 skinparam shadowing false
 
 actor "Client" as Client
-actor "Producteur" as Producteur
-actor "Administrateur" as Admin
+actor "Producer" as Producer
+actor "Administrator" as Admin
 
-rectangle "Plateforme PanierFermier" {
-    usecase "Explorer les fermes sur la carte" as UC1
-    usecase "Consulter la vitrine d'une ferme" as UC2
-    usecase "Composer une demande de panier" as UC3
-    usecase "Accepter ou refuser une offre" as UC4
-    usecase "Payer en ligne avec séquestre (7j)" as UC5
-    usecase "Gérer la vitrine et le catalogue" as UC6
-    usecase "Ajuster et valider un panier" as UC7
-    usecase "Approuver une nouvelle ferme" as UC8
-    usecase "Arbitrer un litige de paiement" as UC9
+rectangle "PanierFermier Platform" {
+    usecase "Explore farms on the map" as UC1
+    usecase "View a farm's storefront" as UC2
+    usecase "Compose a basket request" as UC3
+    usecase "Accept or refuse an offer" as UC4
+    usecase "Pay online with escrow (7d)" as UC5
+    usecase "Manage the storefront and catalogue" as UC6
+    usecase "Adjust and validate a basket" as UC7
+    usecase "Approve a new farm" as UC8
+    usecase "Arbitrate a payment dispute" as UC9
 }
 
-' Relations Client
+' Client relations
 Client --> UC1
 Client --> UC2
 Client --> UC3
 Client --> UC4
 Client --> UC5
 
-' Relations Producteur
-Producteur --> UC6
-Producteur --> UC7
+' Producer relations
+Producer --> UC6
+Producer --> UC7
 
-' Relations Admin
+' Admin relations
 Admin --> UC8
 Admin --> UC9
 
-' Dépendances UML valides
-UC4 <.. UC5 : <<extend>>\n[paiement en ligne]
+' Valid UML dependencies
+UC4 <.. UC5 : <<extend>>\n[online payment]
 
 @enduml
 ```
@@ -254,137 +254,137 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 hide circle
 
-class Utilisateur {
-  nom : String
+class User {
+  name : String
   email : String
-  motDePasseHash : String
+  passwordHash : String
 }
 
 class Client {
-  telephone : String
+  phone : String
 }
 
-class Producteur {
-  idCompteStripe : String
+class Producer {
+  stripeAccountId : String
 }
 
-class Administrateur {
+class Administrator {
 }
 
-class Ferme {
-  nom : String
+class Farm {
+  name : String
   description : String
-  adressePhysique : String
+  physicalAddress : String
   latitude : Decimal
   longitude : Decimal
-  banniereUrl : String
-  horairesOuverture : String
-  statutApprobation : StatutFerme
-  acceptePaiementEnLigne : Boolean
-  acceptePaiementSurPlace : Boolean
+  bannerUrl : String
+  openingHours : String
+  approvalStatus : FarmStatus
+  acceptsOnlinePayment : Boolean
+  acceptsOnSitePayment : Boolean
 }
 
-class Produit {
-  nom : String
-  unite : String
-  prixUnitaire : Decimal
-  disponible : Boolean
+class Product {
+  name : String
+  unit : String
+  unitPrice : Decimal
+  available : Boolean
 }
 
-class Panier {
-  dateCreation : DateTime
-  modePaiement : ModePaiement
-  statut : StatutPanier
-  sousTotalProducteur : Decimal
-  montantCommission : Decimal
-  montantTotalClient : Decimal
+class Basket {
+  creationDate : DateTime
+  paymentMethod : PaymentMethod
+  status : BasketStatus
+  producerSubtotal : Decimal
+  commissionAmount : Decimal
+  clientTotalAmount : Decimal
 }
 
-class LignePanier {
-  quantite : Integer
-  prixUnitaireFige : Decimal
+class BasketLine {
+  quantity : Integer
+  frozenUnitPrice : Decimal
 }
 
-class PaiementSequestre {
-  idTransactionExterne : String
-  datePaiement : DateTime
-  dateExpirationSequestre : DateTime
-  statutFonds : StatutSequestre
+class EscrowPayment {
+  externalTransactionId : String
+  paymentDate : DateTime
+  escrowExpirationDate : DateTime
+  fundStatus : EscrowStatus
 }
 
-class Litige {
-  dateOuverture : DateTime
-  motif : String
-  decision : DecisionLitige
-  dateCloture : DateTime
+class Dispute {
+  openingDate : DateTime
+  reason : String
+  decision : DisputeDecision
+  closingDate : DateTime
 }
 
-Utilisateur <|-- Client
-Utilisateur <|-- Producteur
-Utilisateur <|-- Administrateur
+User <|-- Client
+User <|-- Producer
+User <|-- Administrator
 
-Producteur "1" -- "0..*" Ferme : exploite >
-Administrateur "1" -- "0..*" Ferme : approuve >
-Ferme "1" *-- "0..*" Produit : propose >
+Producer "1" -- "0..*" Farm : operates >
+Administrator "1" -- "0..*" Farm : approves >
+Farm "1" *-- "0..*" Product : offers >
 
-Client "1" -- "0..*" Panier : passe >
-Ferme "1" -- "0..*" Panier : reçoit >
-Panier "1" *-- "1..*" LignePanier : contient >
-LignePanier "0..*" -- "1" Produit : référence >
+Client "1" -- "0..*" Basket : places >
+Farm "1" -- "0..*" Basket : receives >
+Basket "1" *-- "1..*" BasketLine : contains >
+BasketLine "0..*" -- "1" Product : references >
 
-Panier "1" -- "0..1" PaiementSequestre : est garanti par >
-PaiementSequestre "1" -- "0..1" Litige : fait l'objet de >
-Administrateur "1" -- "0..*" Litige : arbitre >
+Basket "1" -- "0..1" EscrowPayment : is guaranteed by >
+EscrowPayment "1" -- "0..1" Dispute : is subject to >
+Administrator "1" -- "0..*" Dispute : arbitrates >
 
 @enduml
 ```
 
 </details>
 
-Le modèle représente les concepts métier centraux sans détails d'implémentation technique. Un `Producteur` exploite une ou plusieurs `Ferme`s, dont la visibilité dépend de `statutApprobation` validé par un `Administrateur`. Conformément à l'exigence de confidentialité ([`C1-NF1`](#c1-nf1---confidentialité)), la classe `Client` ne contient aucun attribut d'adresse postale ni de géolocalisation. Chaque `Panier` regroupe des `LignePanier` liées aux `Produit`s d'une seule ferme et donne lieu, uniquement en cas de paiement en ligne, à un `PaiementSequestre` de 7 jours pouvant être bloqué par un `Litige` arbitré par l'`Administrateur`.
+The model represents the central business concepts without technical implementation details. A `Producer` operates one or more `Farm`s, whose visibility depends on the `approvalStatus` validated by an `Administrator`. In accordance with the privacy requirement ([`C1-NF1`](#c1-nf1---privacy)), the `Client` class contains no postal address or geolocation attribute. Each `Basket` groups `BasketLine`s linked to the `Product`s of a single farm and gives rise, only in the case of online payment, to a 7-day `EscrowPayment` that can be blocked by a `Dispute` arbitrated by the `Administrator`.
 
 ## 4. Detailed Requirements
 
 ### 4.1. Functional Requirements
 
-#### 4.1.1. Catégorie 1 - Découverte des fermes et commande de paniers (Client)
+#### 4.1.1. Category 1 - Farm discovery and basket ordering (Client)
 
-**Description de la catégorie :** Les consommateurs explorent les exploitations agricoles sur une carte, consultent leurs produits et composent des paniers à retirer à la ferme.
+**Category description:** Consumers explore farms on a map, consult their products and compose baskets to be collected at the farm.
 
-##### C1-F1 - Exploration carte
+##### C1-F1 - Map exploration
 
 | **ID** | `C1-F1` |
 | --- | --- |
-| **Name** | Exploration carte |
-| **Short description** | Le système affiche une carte interactive permettant à tout visiteur (sans compte requis) de repérer les fermes approuvées dans la zone géographique affichée. |
+| **Name** | Map exploration |
+| **Short description** | The system displays an interactive map allowing any visitor (no account required) to locate approved farms within the displayed geographical area. |
 
-##### C1-F2 - Consultation vitrine
+##### C1-F2 - Storefront consultation
 
 | **ID** | `C1-F2` |
 | --- | --- |
-| **Name** | Consultation vitrine |
-| **Short description** | Le système affiche la page publique d'une ferme comprenant sa bannière photo, sa description, ses horaires d'ouverture, son adresse obligatoire, la liste des produits proposés et les moyens de paiement acceptés. |
+| **Name** | Storefront consultation |
+| **Short description** | The system displays the public page of a farm including its banner photo, its description, its opening hours, its mandatory address, the list of products offered and the accepted payment methods. |
 
-##### C1-F3 - Composition panier et paiement
+##### C1-F3 - Basket composition and payment
 
 | **ID** | `C1-F3` |
 | --- | --- |
-| **Name** | Composition panier et paiement |
-| **Short description** | Un client authentifié compose un panier à partir des produits d'une ferme et choisit l'un des moyens de paiement autorisés par ce producteur. |
-| **Inputs** | Identifiant de la ferme, liste des produits sélectionnés avec quantités souhaitées, mode de paiement choisi (paiement en ligne sur la plateforme ou paiement à la ferme : Carte, TWINT, Cash). |
-| **Preconditions** | Le client est connecté à son compte ; la page de la ferme est approuvée et visible ; le panier contient au moins un article. |
-| **Rules / steps** | 1. Le système vérifie que tous les produits proviennent d'une seule et même ferme.<br>2. Le système restreint le choix du paiement aux options activées par le producteur ([`C2-F2`](#c2-f2---moyens-de-paiement)).<br>3. Le système enregistre la demande avec le statut *"En attente de validation producteur"* et déclenche une notification ([`C3-F2`](#c3-f2---notifications-commande)). |
-| **Outputs** | Identifiant de demande de panier et estimation indicative du montant total. |
-| **Acceptance criteria** | Un panier valide est enregistré en base de données et transmis au producteur concerné ; toute tentative de soumettre un panier vide ou avec un mode de paiement non autorisé par la ferme est rejetée. |
+| **Name** | Basket composition and payment |
+| **Short description** | An authenticated client composes a basket from the products of a farm and chooses one of the payment methods authorised by that producer. |
+| **Inputs** | Farm identifier, list of selected products with the desired quantities, chosen payment method (online payment on the platform or payment at the farm: Card, TWINT, Cash). |
+| **Preconditions** | The client is logged into their account; the farm page is approved and visible; the basket contains at least one item. |
+| **Rules / steps** | 1. The system verifies that all products come from one and the same farm.<br>2. The system restricts the payment choice to the options enabled by the producer ([`C2-F2`](#c2-f2---payment-methods)).<br>3. The system records the request with the status *"Pending producer validation"* and triggers a notification ([`C3-F2`](#c3-f2---order-notifications)). |
+| **Outputs** | Basket request identifier and indicative estimate of the total amount. |
+| **Acceptance criteria** | A valid basket is recorded in the database and transmitted to the relevant producer; any attempt to submit an empty basket or one with a payment method not authorised by the farm is rejected. |
 
-##### C1-F4 - Acceptation ou refus offre
+##### C1-F4 - Offer acceptance or refusal
 
 | **ID** | `C1-F4` |
 | --- | --- |
-| **Name** | Acceptation ou refus offre |
-| **Short description** | Le client examine le panier validé ou modifié par le producteur ainsi que le prix final proposé, puis décide d'accepter ou de rejeter l'offre. |
-| **Rules / constraints** | L'acceptation d'une offre engage fermement le client à retirer son panier ; aucune annulation unilatérale n'est autorisée après confirmation. |
-| **Acceptance criteria** | Si le client rejette l'offre, la demande passe au statut *"Annulée"* sans frais ; s'il l'accepte avec paiement sur place, la commande passe au statut *"Confirmée"* ; s'il l'accepte avec paiement en ligne, le flux de séquestre ([`C1-F5`](#c1-f5---paiement-en-ligne-garanti)) est déclenché. |
+| **Name** | Offer acceptance or refusal |
+| **Short description** | The client reviews the basket validated or modified by the producer as well as the final proposed price, then decides whether to accept or reject the offer. |
+| **Rules / constraints** | Accepting an offer firmly commits the client to collect their basket; no unilateral cancellation is authorised after confirmation. |
+| **Acceptance criteria** | If the client rejects the offer, the request moves to the *"Cancelled"* status at no cost; if they accept with on-site payment, the order moves to the *"Confirmed"* status; if they accept with online payment, the escrow flow ([`C1-F5`](#c1-f5---guaranteed-online-payment)) is triggered. |
 | **Model** | ![c1-f4](assets/diagrams/c1-f4.svg) |
 
 <details>
@@ -395,31 +395,31 @@ skinparam shadowing false
 skinparam sequenceMessageAlign center
 
 actor Client
-participant "Interface Client" as App
-participant "Système Central" as Sys
-actor Producteur
+participant "Client Interface" as App
+participant "Central System" as Sys
+actor Producer
 
-Client -> App : Consulte l'offre ajustée du panier
+Client -> App : Views the adjusted basket offer
 activate App
 
-alt Offre acceptée
-    Client -> App : Confirme l'acceptation du panier
-    App -> Sys : Enregistre l'accord du client
+alt Offer accepted
+    Client -> App : Confirms the basket acceptance
+    App -> Sys : Records the client's agreement
     activate Sys
     
-    alt Paiement à la ferme choisi
-        Sys -->> Producteur : Notifie commande ferme à préparer
-        Sys -->> Client : Affiche récapitulatif et adresse de retrait
-    else Paiement en ligne choisi
-        Sys -->> App : Redirige vers paiement séquestre (C1-F5)
+    alt On-site payment chosen
+        Sys -->> Producer : Notifies firm order to prepare
+        Sys -->> Client : Displays summary and collection address
+    else Online payment chosen
+        Sys -->> App : Redirects to escrow payment (C1-F5)
     end
     deactivate Sys
 
-else Offre rejetée
-    Client -> App : Refuse la proposition
-    App -> Sys : Clôture la demande (statut: Annulée)
+else Offer rejected
+    Client -> App : Refuses the proposal
+    App -> Sys : Closes the request (status: Cancelled)
     activate Sys
-    Sys -->> Producteur : Notifie le refus du client
+    Sys -->> Producer : Notifies the client's refusal
     deactivate Sys
 end
 
@@ -429,121 +429,121 @@ deactivate App
 
 </details>
 
-##### C1-F5 - Paiement en ligne garanti
+##### C1-F5 - Guaranteed online payment
 
 | **ID** | `C1-F5` |
 | --- | --- |
-| **Name** | Paiement en ligne garanti |
-| **Short description** | Lorsque le client opte pour le paiement en ligne et accepte l'offre, il règle le montant majoré de la commission fixe via le module hébergé de l'intermédiaire de paiement externe (ex. : Stripe), qui conserve les fonds en séquestre pendant 7 jours. |
-| **Inputs** | Identifiant du panier accepté, montant total incluant la commission fixe ([`C3-F3`](#c3-f3---calcul-prix-et-commission)), jeton et confirmation (webhook) retournés par l'intermédiaire de paiement. |
-| **Preconditions** | Le producteur a activé le paiement en ligne avec un compte bénéficiaire valide ([`C2-F2`](#c2-f2---moyens-de-paiement)) et validé l'offre ([`C2-F5`](#c2-f5---ajustement-panier-et-offre)) ; le client a accepté l'offre ([C1-F4](#c1-f4---acceptation-ou-refus-offre)). |
-| **Rules / steps** | 1. Le système crée une intention de paiement auprès de l'API de l'intermédiaire externe avec rétention des fonds (séquestre / transfert différé de 7 jours).<br>2. Le client saisit ses données de paiement (Carte ou TWINT) exclusivement sur l'interface sécurisée du prestataire.<br>3. À réception de la confirmation du prestataire, la commande devient ferme et non annulable : le producteur doit préparer le panier et le client doit venir le retirer. |
-| **Outputs** | Identifiant de transaction externe, reçu de paiement, date d'expiration du séquestre ($T_0 + 7\text{ jours}$) et coordonnées de support visibles en cas de litige. |
-| **Acceptance criteria** | Dès réception de la confirmation de l'intermédiaire de paiement, le statut de la commande passe à *"En séquestre (7j)"*, aucune donnée bancaire n'est stockée sur la plateforme, aucun bouton d'annulation n'est disponible et le producteur reçoit l'ordre de préparation. |
+| **Name** | Guaranteed online payment |
+| **Short description** | When the client opts for online payment and accepts the offer, they pay the amount increased by the fixed commission through the external payment intermediary's hosted module (e.g. Stripe), which holds the funds in escrow for 7 days. |
+| **Inputs** | Accepted basket identifier, total amount including the fixed commission ([`C3-F3`](#c3-f3---price-and-commission-calculation)), token and confirmation (webhook) returned by the payment intermediary. |
+| **Preconditions** | The producer has enabled online payment with a valid beneficiary account ([`C2-F2`](#c2-f2---payment-methods)) and validated the offer ([`C2-F5`](#c2-f5---basket-adjustment-and-offer)); the client has accepted the offer ([C1-F4](#c1-f4---offer-acceptance-or-refusal)). |
+| **Rules / steps** | 1. The system creates a payment intent with the external intermediary's API with fund retention (escrow / deferred transfer for 7 days).<br>2. The client enters their payment details (Card or TWINT) exclusively on the provider's secure interface.<br>3. Upon receipt of the provider's confirmation, the order becomes firm and non-cancellable: the producer must prepare the basket and the client must come and collect it. |
+| **Outputs** | External transaction identifier, payment receipt, escrow expiration date ($T_0 + 7\text{ days}$) and support contact details visible in case of dispute. |
+| **Acceptance criteria** | Upon receipt of the payment intermediary's confirmation, the order status moves to *"In escrow (7d)"*, no banking data is stored on the platform, no cancellation button is available, and the producer receives the preparation order. |
 
-#### 4.1.2. Catégorie 2 - Gestion de la vitrine et traitement des paniers (Producteur)
+#### 4.1.2. Category 2 - Storefront management and basket processing (Producer)
 
-**Description de la catégorie :** Les producteurs agricoles créent leur vitrine, définissent leurs conditions de vente et ajustent les demandes de paniers selon leurs disponibilités réelles.
+**Category description:** Agricultural producers create their storefront, define their sales conditions and adjust basket requests according to their real availability.
 
-##### C2-F1 - Création vitrine
+##### C2-F1 - Storefront creation
 
 | **ID** | `C2-F1` |
 | --- | --- |
-| **Name** | Création vitrine |
-| **Short description** | Un producteur inscrit crée sa page ferme en saisissant obligatoirement l'adresse physique de l'exploitation, une bannière photo, une description et ses horaires d'ouverture ; la page reste masquée du public jusqu'à validation administrative ([`C3-F1`](#c3-f1---approbation-ferme)). |
+| **Name** | Storefront creation |
+| **Short description** | A registered producer creates their farm page by mandatorily entering the farm's physical address, a banner photo, a description and their opening hours; the page remains hidden from the public until administrative validation ([`C3-F1`](#c3-f1---farm-approval)). |
 
-##### C2-F2 - Moyens de paiement
+##### C2-F2 - Payment methods
 
 | **ID** | `C2-F2` |
 | --- | --- |
-| **Name** | Moyens de paiement |
-| **Short description** | Le producteur sélectionne les modalités de règlement qu'il accepte : paiement en ligne délégué via l'intermédiaire de paiement de la plateforme (nécessitant l'association d'un compte bénéficiaire auprès du prestataire, tel que Stripe Connect, avec garantie et commission fixe) et/ou paiement direct à la ferme (Carte, TWINT, Cash, sans frais ni garantie). |
+| **Name** | Payment methods |
+| **Short description** | The producer selects the settlement methods they accept: online payment delegated through the platform's payment intermediary (requiring the association of a beneficiary account with the provider, such as Stripe Connect, with guarantee and fixed commission) and/or direct payment at the farm (Card, TWINT, Cash, with no fee and no guarantee). |
 
-##### C2-F3 - Catalogue produits
+##### C2-F3 - Product catalogue
 
 | **ID** | `C2-F3` |
 | --- | --- |
-| **Name** | Catalogue produits |
-| **Short description** | Le producteur ajoute, modifie ou supprime des produits disponibles (nom, unité, prix unitaire) sur sa vitrine à tout moment, sans jamais avoir à saisir ou maintenir de quantités en stock. |
+| **Name** | Product catalogue |
+| **Short description** | The producer adds, modifies or deletes available products (name, unit, unit price) on their storefront at any time, without ever having to enter or maintain stock quantities. |
 
-##### C2-F4 - Mise à jour vitrine
+##### C2-F4 - Storefront update
 
 | **ID** | `C2-F4` |
 | --- | --- |
-| **Name** | Mise à jour vitrine |
-| **Short description** | Toute mise à jour apportée par un producteur à une page déjà validée par l'administration est publiée instantanément sans nouvelle approbation manuelle. |
-| **Inputs** | Modifications de la bannière photo, de la description, des horaires d'ouverture, de la liste des produits ou des moyens de paiement. |
-| **Preconditions** | Le compte du producteur est authentifié et sa vitrine possède déjà le statut *"Approuvée"*. |
-| **Rules / steps** | 1. Le système valide le format des champs modifiés (ex. : adresse non vide, prix positifs).<br>2. Le système enregistre les nouvelles données et conserve le statut *"Approuvée"*.<br>3. La vitrine reste visible sur la carte sans interruption. |
-| **Outputs** | Confirmation d'enregistrement et mise à jour immédiate de la page publique de la ferme. |
-| **Acceptance criteria** | Lorsqu'un producteur approuvé modifie ses horaires ou ajoute un produit, le changement est visible par un visiteur en moins de 5 secondes sans intervention d'un administrateur. |
+| **Name** | Storefront update |
+| **Short description** | Any update made by a producer to a page already validated by the administration is published instantly without a new manual approval. |
+| **Inputs** | Modifications to the banner photo, the description, the opening hours, the product list or the payment methods. |
+| **Preconditions** | The producer's account is authenticated and their storefront already has the *"Approved"* status. |
+| **Rules / steps** | 1. The system validates the format of the modified fields (e.g. non-empty address, positive prices).<br>2. The system saves the new data and keeps the *"Approved"* status.<br>3. The storefront remains visible on the map without interruption. |
+| **Outputs** | Save confirmation and immediate update of the farm's public page. |
+| **Acceptance criteria** | When an approved producer modifies their opening hours or adds a product, the change is visible to a visitor in less than 5 seconds without any administrator intervention. |
 
-##### C2-F5 - Ajustement panier et offre
+##### C2-F5 - Basket adjustment and offer
 
 | **ID** | `C2-F5` |
 | --- | --- |
-| **Name** | Ajustement panier et offre |
-| **Short description** | À réception d'une demande de panier, le producteur peut retirer les articles indisponibles et valider le prix final proposé automatiquement par la plateforme. |
-| **Inputs** | Identifiant de la demande de panier, liste des articles conservés (suppression possible des articles manquants), confirmation du prix calculé. |
-| **Preconditions** | Une demande de panier au statut *"En attente de validation producteur"* existe pour cette exploitation. |
-| **Rules / steps** | 1. Le producteur consulte le panier demandé et retire, le cas échéant, un ou plusieurs produits indisponibles.<br>2. Le système recalcule automatiquement le prix total en fonction des articles conservés et du mode de paiement choisi ([`C3-F3`](#c3-f3---calcul-prix-et-commission)).<br>3. Le producteur valide cette proposition, ce qui fait passer la demande au statut *"Offre soumise au client"* et notifie l'acheteur ([`C3-F2`](#c3-f2---notifications-commande)). |
-| **Outputs** | Panier mis à jour, prix final validé et notification envoyée au client. |
-| **Acceptance criteria** | Le producteur peut supprimer un article manquant d'un panier demandé, voir le prix ajusté se recalculer automatiquement et transmettre l'offre au client ; si tous les articles sont retirés, la demande est refusée. |
+| **Name** | Basket adjustment and offer |
+| **Short description** | Upon receiving a basket request, the producer may remove unavailable items and validate the final price automatically proposed by the platform. |
+| **Inputs** | Basket request identifier, list of retained items (removal of missing items possible), confirmation of the calculated price. |
+| **Preconditions** | A basket request with the *"Pending producer validation"* status exists for this farm. |
+| **Rules / steps** | 1. The producer consults the requested basket and removes, where applicable, one or more unavailable products.<br>2. The system automatically recalculates the total price according to the retained items and the chosen payment method ([`C3-F3`](#c3-f3---price-and-commission-calculation)).<br>3. The producer validates this proposal, which moves the request to the *"Offer submitted to client"* status and notifies the buyer ([`C3-F2`](#c3-f2---order-notifications)). |
+| **Outputs** | Updated basket, validated final price and notification sent to the client. |
+| **Acceptance criteria** | The producer can remove a missing item from a requested basket, see the adjusted price recalculated automatically and forward the offer to the client; if all items are removed, the request is refused. |
 
-#### 4.1.3. Catégorie 3 - Administration, notifications et gestion financière (Système & Admin)
+#### 4.1.3. Category 3 - Administration, notifications and financial management (System & Admin)
 
-**Description de la catégorie :** Le système automatise les notifications et le calcul des commissions, tandis que l’administrateur contrôle l’entrée des producteurs et arbitre les litiges.
+**Category description:** The system automates notifications and commission calculations, while the administrator controls producer onboarding and arbitrates disputes.
 
-##### C3-F1 - Approbation ferme
+##### C3-F1 - Farm approval
 
 | ID | `C3-F1` |
 | --- | --- |
-| **Name** | Approbation ferme |
-| **Short description** | Un administrateur examine les nouvelles pages fermes créées et valide manuellement leur publication pour les rendre visibles sur la carte. |
-| **Inputs** | Identifiant de la ferme en attente, décision de l’administrateur (Approuver ou Rejeter). |
-| **Preconditions** | Un producteur a finalisé la création initiale de sa vitrine ([`C2-F1`](#c2-f1---cr%C3%A9ation-vitrine)), qui se trouve au statut "En attente d’approbation" (masquée du public). |
-| **Rules / steps** | 1. L’administrateur vérifie l’authenticité de l’exploitation et la validité de l’adresse saisie.<br>2. Si l’administrateur approuve la page, son statut passe à *"Approuvée"* et ses coordonnées géographiques apparaissent immédiatement sur la carte publique ([`C1-F1`](#c1-f1---exploration-carte)).<br>3. En cas de rejet, la vitrine reste masquée et le producteur est informé du motif. |
-| **Outputs** | Mise à jour de la visibilité de la ferme sur la plateforme. |
-| **Acceptance criteria** | Une ferme nouvellement créée est invisible dans les recherches clients avant validation et devient consultable publiquement dès qu’un administrateur clique sur *"Approuver"*. |
+| **Name** | Farm approval |
+| **Short description** | An administrator reviews the newly created farm pages and manually validates their publication to make them visible on the map. |
+| **Inputs** | Identifier of the pending farm, administrator's decision (Approve or Reject). |
+| **Preconditions** | A producer has completed the initial creation of their storefront ([`C2-F1`](#c2-f1---storefront-creation)), which is in the "Pending approval" status (hidden from the public). |
+| **Rules / steps** | 1. The administrator verifies the farm's authenticity and the validity of the entered address.<br>2. If the administrator approves the page, its status moves to *"Approved"* and its geographical coordinates appear immediately on the public map ([`C1-F1`](#c1-f1---map-exploration)).<br>3. In case of rejection, the storefront remains hidden and the producer is informed of the reason. |
+| **Outputs** | Update of the farm's visibility on the platform. |
+| **Acceptance criteria** | A newly created farm is invisible in client searches before validation and becomes publicly viewable as soon as an administrator clicks *"Approve"*. |
 
-##### C3-F2 - Notifications commande
+##### C3-F2 - Order notifications
 
 | ID | `C3-F2` |
 | --- | --- |
-| **Name** | Notifications commande |
-| **Short description** | Le système envoie automatiquement une notification au producteur lorsqu’un client crée un panier, puis au client lorsque le producteur valide ou ajuste ce panier. |
+| **Name** | Order notifications |
+| **Short description** | The system automatically sends a notification to the producer when a client creates a basket, then to the client when the producer validates or adjusts that basket. |
 
-##### C3-F3 - Calcul prix et commission
+##### C3-F3 - Price and commission calculation
 
 | ID | `C3-F3` |
 | --- | --- |
-| **Name** | Calcul prix et commission |
-| **Short description** | Le système calcule automatiquement le prix du panier à partir des produits retenus en appliquant un taux de commission fixe uniquement lorsque le paiement en ligne est sélectionné. |
-| **Inputs** | Liste des produits retenus avec leurs prix unitaires, mode de paiement choisi, taux de commission fixe paramétré sur la plateforme. |
-| **Rules / steps** | 1. Le système calcule le sous-total des produits $S = \sum (\text{prix}_i \times \text{quantité}_i)$.<br>2. Si le mode de paiement est *"Paiement à la ferme"*, le montant final est égal à $S$ (commission $= 0$).<br>3. Si le mode de paiement est *"Paiement en ligne"*, le montant final facturé au client est $M = S \times (1 + r)$, la part reversée au producteur étant $S$. |
-| **Outputs** | Sous-total producteur ($S$), montant de la commission et prix total client ($M$). |
-| **Acceptance criteria** | Pour un panier de 50 CHF et un taux fixe de 10 %, le système affiche 50 CHF sans frais pour un paiement sur place et 55 CHF pour un paiement en ligne. |
+| **Name** | Price and commission calculation |
+| **Short description** | The system automatically calculates the basket price from the retained products, applying a fixed commission rate only when online payment is selected. |
+| **Inputs** | List of retained products with their unit prices, chosen payment method, fixed commission rate configured on the platform. |
+| **Rules / steps** | 1. The system calculates the products subtotal $S = \sum (\text{price}_i \times \text{quantity}_i)$.<br>2. If the payment method is *"Payment at the farm"*, the final amount equals $S$ (commission $= 0$).<br>3. If the payment method is *"Online payment"*, the final amount charged to the client is $M = S \times (1 + r)$, the share transferred to the producer being $S$. |
+| **Outputs** | Producer subtotal ($S$), commission amount and client total price ($M$). |
+| **Acceptance criteria** | For a 50 CHF basket and a fixed 10 % rate, the system displays 50 CHF with no fee for on-site payment and 55 CHF for online payment. |
 
-##### C3-F4 - Libération fonds 7j
+##### C3-F4 - 7-day fund release
 
 | **ID** | `C3-F4` |
 | --- | --- |
-| **Name** | Libération fonds 7j |
-| **Short description** | Si aucun litige n'est ouvert dans les 7 jours calendaires suivant un paiement en ligne, le système envoie automatiquement via l'API de l'intermédiaire de paiement l'instruction de transférer la part du producteur ($S$) vers son compte bénéficiaire et de prélever la commission fixe de la plateforme. |
-| **Inputs** | Liste des commandes au statut *"En séquestre (7j)"* dont la date d'expiration ($T_0 + 7\text{ jours}$) est atteinte et qui n'ont aucun litige ouvert ([`C3-F5`](#c3-f5---arbitrage-litige)). |
-| **Preconditions** | Le paiement en ligne a été confirmé ([`C1-F5`](#c1-f5---paiement-en-ligne-garanti)), 7 jours calendaires ($168\text{ heures}$) se sont écoulés et aucun litige n'a été enregistré par un administrateur. |
-| **Rules / steps** | 1. Une tâche planifiée vérifie périodiquement les paiements en séquestre arrivés à échéance.<br>2. Pour chaque commande éligible sans litige actif, le système appelle l'API de l'intermédiaire de paiement pour déclencher le virement du sous-total $S$ au producteur et retenir la commission.<br>3. À réception de la confirmation du prestataire, le statut passe à *"Fonds libérés"*. |
-| **Outputs** | Ordre de transfert API, identifiant de versement et mise à jour du statut de la commande. |
-| **Acceptance criteria** | Toute commande payée en ligne sans litige voit ses fonds automatiquement libérés vers le producteur au plus tard 1 heure après l'expiration du délai de 7 jours, tandis que toute commande avec un litige ouvert est ignorée par ce processus. |
+| **Name** | 7-day fund release |
+| **Short description** | If no dispute is opened within the 7 calendar days following an online payment, the system automatically sends, through the payment intermediary's API, the instruction to transfer the producer's share ($S$) to their beneficiary account and to collect the platform's fixed commission. |
+| **Inputs** | List of orders in the *"In escrow (7d)"* status whose expiration date ($T_0 + 7\text{ days}$) has been reached and which have no open dispute ([`C3-F5`](#c3-f5---dispute-arbitration)). |
+| **Preconditions** | The online payment has been confirmed ([`C1-F5`](#c1-f5---guaranteed-online-payment)), 7 calendar days ($168\text{ hours}$) have elapsed and no dispute has been recorded by an administrator. |
+| **Rules / steps** | 1. A scheduled task periodically checks escrow payments that have reached their due date.<br>2. For each eligible order without an active dispute, the system calls the payment intermediary's API to trigger the transfer of the $S$ subtotal to the producer and to retain the commission.<br>3. Upon receipt of the provider's confirmation, the status moves to *"Funds released"*. |
+| **Outputs** | API transfer order, payout identifier and update of the order status. |
+| **Acceptance criteria** | Any order paid online without a dispute has its funds automatically released to the producer at the latest 1 hour after the expiry of the 7-day period, while any order with an open dispute is ignored by this process. |
 
-##### C3-F5 - Arbitrage litige
+##### C3-F5 - Dispute arbitration
 
 | ID | `C3-F5` |
 | --- | --- |
-| **Name** | Arbitrage litige |
-| **Short description** | Lorsqu'un client signale par e-mail ou téléphone (via les coordonnées affichées sur la plateforme) ne pas avoir pu obtenir son panier payé en ligne dans le délai de 7 jours, l'administrateur suspend le transfert automatique et tranche le litige via l'intermédiaire de paiement. |
-| **Rules / constraints** | L'administrateur ne peut clôturer un litige que selon deux issues exclusives exécutées via l'API de l'intermédiaire de paiement : (1) ordre de remboursement intégral du client si le producteur n'a pas fourni le panier comme promis, ou (2) ordre de libération des fonds au producteur si le client ne s'est pas présenté alors que le producteur a rempli ses obligations. |
-| **Acceptance criteria** | L'ouverture d'un litige bloque l'envoi de l'instruction automatique de transfert ([`C3-F4`](#c3-f4---libération-fonds-7j)) ; l'issue (1) déclenche un remboursement complet auprès du prestataire (statut *"Client remboursé"*), tandis que l'issue (2) déclenche le virement vers le compte bénéficiaire du producteur (statut *"Fonds libérés"*). |
+| **Name** | Dispute arbitration |
+| **Short description** | When a client reports by e-mail or telephone (through the contact details displayed on the platform) that they were unable to obtain their online-paid basket within the 7-day period, the administrator suspends the automatic transfer and settles the dispute through the payment intermediary. |
+| **Rules / constraints** | The administrator can only close a dispute with one of two mutually exclusive outcomes executed through the payment intermediary's API: (1) order a full refund to the client if the producer did not provide the basket as promised, or (2) order the release of the funds to the producer if the client did not show up while the producer fulfilled their obligations. |
+| **Acceptance criteria** | Opening a dispute blocks the sending of the automatic transfer instruction ([`C3-F4`](#c3-f4---7-day-fund-release)); outcome (1) triggers a full refund from the provider (status *"Client refunded"*), while outcome (2) triggers the transfer to the producer's beneficiary account (status *"Funds released"*). |
 | **Model** | ![c3-f5](assets/diagrams/c3-f5.svg) |
 
 <details>
@@ -552,23 +552,23 @@ deactivate App
 @startuml assets/diagrams/c3-f5
 skinparam shadowing false
 
-[*] --> EnAttenteProducteur : Panier soumis (C1-F3)
-EnAttenteProducteur --> OffreProposee : Panier ajusté/validé (C2-F5)
+[*] --> PendingProducer : Basket submitted (C1-F3)
+PendingProducer --> OfferProposed : Basket adjusted/validated (C2-F5)
 
-OffreProposee --> Annulee : Offre rejetée par client (C1-F4)
-OffreProposee --> ConfirmeeSurPlace : Acceptée (paiement à la ferme)
-OffreProposee --> EnSequestre7J : Acceptée et payée en ligne via Stripe (C1-F5)
+OfferProposed --> Cancelled : Offer rejected by client (C1-F4)
+OfferProposed --> ConfirmedOnSite : Accepted (payment at the farm)
+OfferProposed --> InEscrow7D : Accepted and paid online via Stripe (C1-F5)
 
-EnSequestre7J --> FondsLiberes : 7 jours écoulés sans plainte (C3-F4)
-EnSequestre7J --> LitigeOuvert : Plainte client sous 7 jours
+InEscrow7D --> FundsReleased : 7 days elapsed without complaint (C3-F4)
+InEscrow7D --> DisputeOpened : Client complaint within 7 days
 
-LitigeOuvert --> ClientRembourse : Admin confirme faute du producteur\n(Remboursement via Stripe)
-LitigeOuvert --> FondsLiberes : Admin confirme faute du client\n(Virement au producteur via Stripe)
+DisputeOpened --> ClientRefunded : Admin confirms producer's fault\n(Refund via Stripe)
+DisputeOpened --> FundsReleased : Admin confirms client's fault\n(Transfer to producer via Stripe)
 
-Annulee --> [*]
-ConfirmeeSurPlace --> [*]
-FondsLiberes --> [*]
-ClientRembourse --> [*]
+Cancelled --> [*]
+ConfirmedOnSite --> [*]
+FundsReleased --> [*]
+ClientRefunded --> [*]
 
 @enduml
 ```
@@ -577,53 +577,53 @@ ClientRembourse --> [*]
 
 ### 4.2. Non-Functional Requirements
 
-Chaque exigence non fonctionnelle précise des critères d’acceptation mesurables accompagnés des conditions de charge ou d’exploitation.
+Each non-functional requirement specifies measurable acceptance criteria together with the load or operating conditions.
 
-#### 4.2.1. Catégorie 1 - Confidentialité et Sécurité
+#### 4.2.1. Category 1 - Privacy and Security
 
-##### C1-NF1 - Confidentialité
+##### C1-NF1 - Privacy
 
 | ID | `C1-NF1` |
 | --- | --- |
-| **Name** | Confidentialité |
-| **Description** | L’application ne doit ni demander l’accès au capteur GPS du terminal client, ni enregistrer d’adresse postale personnelle pour les consommateurs. |
-| **Measurable acceptance criterion** | Lors d’un audit des requêtes réseau et du schéma de base de données sur 100 sessions clients complètes (exploration de la carte et commande), 0 permission GPS n’est sollicitée côté client et 0 donnée de localisation ou adresse personnelle d’acheteur n’est persistée sur les serveurs. |
+| **Name** | Privacy |
+| **Description** | The application must neither request access to the client device's GPS sensor nor store any personal postal address for consumers. |
+| **Measurable acceptance criterion** | In an audit of network requests and of the database schema over 100 complete client sessions (map exploration and ordering), 0 GPS permissions are requested on the client side and 0 location data or personal buyer addresses are persisted on the servers. |
 
-##### C1-NF2 - Sécurité paiements
+##### C1-NF2 - Payment security
 
 | ID | `C1-NF2` |
 | --- | --- |
-| **Name** | Sécurité paiements |
-| **Description** | L'ensemble du traitement des transactions en ligne (carte bancaire, TWINT) ainsi que la rétention temporaire des fonds durant le séquestre de 7 jours doivent être intégralement délégués à un intermédiaire de paiement externe certifié PCI-DSS (tel que Stripe), sans qu'aucune donnée bancaire sensible ne transite en clair ni ne soit stockée sur les serveurs de la plateforme. |
-| **Measurable acceptance criterion** | Lors d'un audit technique et réseau portant sur 100 transactions en ligne (Carte et TWINT), 100 % des saisies de paiement s'effectuent via les composants hébergés du prestataire (ex. : Stripe Checkout/Elements), 100 % des échanges réseau utilisent le protocole TLS 1.3 minimum, et 0 donnée financière sensible (numéro de carte, CVV, identifiant bancaire) n'est enregistrée dans la base de données de la plateforme. |
+| **Name** | Payment security |
+| **Description** | All processing of online transactions (bank card, TWINT) as well as the temporary retention of funds during the 7-day escrow must be entirely delegated to a certified PCI-DSS external payment intermediary (such as Stripe), with no sensitive banking data transiting in clear text or being stored on the platform's servers. |
+| **Measurable acceptance criterion** | In a technical and network audit covering 100 online transactions (Card and TWINT), 100 % of payment entries are made through the provider's hosted components (e.g. Stripe Checkout/Elements), 100 % of network exchanges use the TLS 1.3 protocol minimum, and 0 sensitive financial data (card number, CVV, bank identifier) is recorded in the platform's database. |
 
-#### 4.2.2. Catégorie 2 - Performance et Fiabilité
+#### 4.2.2. Category 2 - Performance and Reliability
 
-##### C2-NF1 - Performance carte
+##### C2-NF1 - Map performance
 
 | ID | `C2-NF1` |
 | --- | --- |
-| **Name** | Performance carte |
-| **Description** | L’affichage des fermes approuvées lors du déplacement ou du zoom sur la carte interactive doit s’effectuer rapidement en charge normale. |
-| **Measurable acceptance criterion** | Au moins 95 % de 1 000 requêtes de chargement de zone géographique aboutissent en moins de 1,5 seconde avec 200 utilisateurs simultanés sur une base de données contenant 1 000 fermes enregistrées. |
+| **Name** | Map performance |
+| **Description** | The display of approved farms when panning or zooming on the interactive map must perform quickly under normal load. |
+| **Measurable acceptance criterion** | At least 95 % of 1 000 geographical area loading requests complete in less than 1.5 seconds with 200 concurrent users on a database containing 1 000 registered farms. |
 
-##### C2-NF2 - Délai notifications
+##### C2-NF2 - Notification delay
 
 | ID | `C2-NF2` |
 | --- | --- |
-| **Name** | Délai notifications |
-| **Description** | Les notifications lors de la soumission d’un panier ou de l’envoi d’une contre-offre par le fermier doivent être transmises sans délai notable. |
-| **Measurable acceptance criterion** | 99 % des notifications (push/e-mail) sont émises par le serveur vers le service de messagerie en moins de 5 secondes après l’action déclenchante, mesuré sur un échantillon de 500 transitions de panier. |
+| **Name** | Notification delay |
+| **Description** | Notifications upon basket submission or upon a counter-offer sent by the farmer must be delivered without noticeable delay. |
+| **Measurable acceptance criterion** | 99 % of notifications (push/e-mail) are emitted by the server to the messaging service in less than 5 seconds after the triggering action, measured over a sample of 500 basket transitions. |
 
-#### 4.2.3. Catégorie 3 - Ergonomie
+#### 4.2.3. Category 3 - Ergonomics
 
-##### C3-NF1 - Ergonomie vitrine
+##### C3-NF1 - Storefront ergonomics
 
 | ID | `C3-NF1` |
 | --- | --- |
-| **Name** | Ergonomie vitrine |
-| **Description** | L’interface fermier doit permettre la création d’une vitrine et l’ajustement d’un panier sans formation préalable ni saisie complexe. |
-| **Measurable acceptance criterion** | Lors d'un test d'utilisabilité mené auprès de 10 producteurs sans assistance, au moins 90 % d'entre eux parviennent à créer une vitrine complète avec 5 produits en moins de 8 minutes, et à retirer un article d'un panier reçu en moins de 30 secondes. |
+| **Name** | Storefront ergonomics |
+| **Description** | The farmer interface must allow creating a storefront and adjusting a basket without prior training or complex data entry. |
+| **Measurable acceptance criterion** | In a usability test conducted with 10 producers without assistance, at least 90 % of them manage to create a complete storefront with 5 products in less than 8 minutes, and to remove an item from a received basket in less than 30 seconds. |
 
 ## 5. System Architecture
 
@@ -640,40 +640,40 @@ skinparam shadowing false
 skinparam ranksep 70
 skinparam nodesep 50
 
-package "Clients (Navigateur Web / Mobile)" {
-    component "Application Client\n(Carte, Panier, Paiement hébergé)" as ClientApp
-    component "Application Producteur\n(Vitrine, Catalogue, Offres)" as FarmerApp
-    component "Portail Administrateur\n(Approbation, Litiges)" as AdminApp
+package "Clients (Web / Mobile Browser)" {
+    component "Client Application\n(Map, Basket, Hosted Payment)" as ClientApp
+    component "Producer Application\n(Storefront, Catalogue, Offers)" as FarmerApp
+    component "Administrator Portal\n(Approval, Disputes)" as AdminApp
 }
 
-package "Serveur Applicatif (Backend PanierFermier)" {
-    interface "API REST / HTTPS (TLS 1.3)" as API
+package "Application Server (PanierFermier Backend)" {
+    interface "REST API / HTTPS (TLS 1.3)" as API
 
-    component [Service Authentification] as AuthSvc
-    component [Service Découverte & Vitrines] as DiscoverySvc
-    component [Service Paniers & Tarification] as OrderSvc
-    component [Service Séquestre & Litiges] as EscrowSvc
-    component [Service Administration] as AdminSvc
-    component [Service Notifications] as NotifSvc
+    component [Auth Service] as AuthSvc
+    component [Discovery & Storefront Service] as DiscoverySvc
+    component [Basket & Pricing Service] as OrderSvc
+    component [Escrow & Disputes Service] as EscrowSvc
+    component [Administration Service] as AdminSvc
+    component [Notification Service] as NotifSvc
 
-    database "Base de Données Principale\n(Fermes, Produits, Paniers, Utilisateurs)" as DB
+    database "Main Database\n(Farms, Products, Baskets, Users)" as DB
 }
 
-cloud "Services Externes" {
-    component "Intermédiaire de Paiement PCI-DSS\n(ex. Stripe / Stripe Connect)" as Stripe
-    component "Fournisseur Cartographique\n(ex. OpenStreetMap)" as MapAPI
-    component "Passerelle E-mail / Push" as MsgAPI
+cloud "External Services" {
+    component "PCI-DSS Payment Intermediary\n(e.g. Stripe / Stripe Connect)" as Stripe
+    component "Map Provider\n(e.g. OpenStreetMap)" as MapAPI
+    component "E-mail / Push Gateway" as MsgAPI
 }
 
-' Connexions Clients -> Backend & Externes
-ClientApp --> MapAPI : Tuiles cartographiques
-ClientApp --> API : Recherche zone (sans GPS) & Paniers
-ClientApp --> Stripe : Saisie Carte / TWINT (hébergé)
+' Client connections -> Backend & External
+ClientApp --> MapAPI : Map tiles
+ClientApp --> API : Area search (no GPS) & Baskets
+ClientApp --> Stripe : Card / TWINT entry (hosted)
 
-FarmerApp --> API : Édition vitrine & ajustement offres
-AdminApp --> API : Validation fermes & décisions litiges
+FarmerApp --> API : Storefront editing & offer adjustment
+AdminApp --> API : Farm validation & dispute decisions
 
-' Connexions internes Backend
+' Internal backend connections
 API --> AuthSvc
 API --> DiscoverySvc
 API --> OrderSvc
@@ -686,13 +686,13 @@ OrderSvc --> DB
 EscrowSvc --> DB
 AdminSvc --> DB
 
-OrderSvc --> NotifSvc : Déclenchement alertes
-EscrowSvc --> Stripe : Séquestre 7j / Virement / Remboursement
-Stripe --> EscrowSvc : Webhooks transaction
-NotifSvc --> MsgAPI : Envoi notifications
+OrderSvc --> NotifSvc : Triggers alerts
+EscrowSvc --> Stripe : 7d escrow / Transfer / Refund
+Stripe --> EscrowSvc : Transaction webhooks
+NotifSvc --> MsgAPI : Sends notifications
 @enduml
 ```
 
 </details>
 
-L'architecture suit un modèle client-serveur découplé. Les interfaces **Client**, **Producteur** et **Administrateur** communiquent avec le serveur applicatif exclusivement via une **API REST sécurisée (TLS 1.3)**. Pour respecter les exigences de sécurité ([`C1-NF2`](#c1-nf2---sécurité-paiements)) et de confidentialité ([`C1-NF1`](#c1-nf1---confidentialité)), l'application cliente charge directement les tuiles cartographiques sans transmettre de coordonnées GPS au serveur et délègue la saisie des moyens de paiement aux composants hébergés de **Stripe**. Côté serveur, la logique métier est répartie en services spécialisés (authentification, découverte, tarification/paniers, séquestre/litiges, administration et notifications) s'appuyant sur une base de données relationnelle centrale qui ne conserve aucune donnée bancaire sensible ni adresse de client.
+The architecture follows a decoupled client–server model. The **Client**, **Producer** and **Administrator** interfaces communicate with the application server exclusively through a **secured REST API (TLS 1.3)**. To comply with the security ([`C1-NF2`](#c1-nf2---payment-security)) and privacy ([`C1-NF1`](#c1-nf1---privacy)) requirements, the client application loads the map tiles directly without transmitting GPS coordinates to the server, and delegates payment detail entry to **Stripe**'s hosted components. On the server side, the business logic is divided into specialised services (authentication, discovery, pricing/baskets, escrow/disputes, administration and notifications) relying on a central relational database that stores neither sensitive banking data nor client addresses.

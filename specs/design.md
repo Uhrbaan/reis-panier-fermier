@@ -1,27 +1,27 @@
 # Technical Design Specification — PanierFermier
 
 ## 1. Architecture & Tech Stack
-* **Frontend (`frontend/`) :** SPA **Vue 3** (Composition API, TypeScript), **Tailwind CSS**, **Vue Router**, **MapLibre GL JS** (tuiles OpenStreetMap).
-* **Backend (`backend/`) :** **Node.js**, **Express**, **TypeScript**, **SQLite** (`better-sqlite3`), **Multer** (upload d'images local), **bcrypt** + **jsonwebtoken** (authentification).
-* **Tests (`tests/`) :** **Vitest** + **Supertest** (tests unitaires et d'intégration API/NFR) et **Playwright** (tests E2E).
+* **Frontend (`frontend/`):** **Vue 3** SPA (Composition API, TypeScript), **Tailwind CSS**, **Vue Router**, **MapLibre GL JS** (OpenStreetMap tiles).
+* **Backend (`backend/`):** **Node.js**, **Express**, **TypeScript**, **SQLite** (`better-sqlite3`), **Multer** (local image upload), **bcrypt** + **jsonwebtoken** (authentication).
+* **Tests (`tests/`):** **Vitest** + **Supertest** (unit and API/NFR integration tests) and **Playwright** (E2E tests).
 
-> **Note (T1.2) :** Les répertoires réels du dépôt sont `backend/` et `frontend/` (et non `server/` / `client/`). Le code serveur vit dans `backend/src/`.
+> **Note (T1.2):** The actual repository directories are `backend/` and `frontend/` (not `server/` / `client/`). Server code lives in `backend/src/`.
 
 ## 2. Key Design Decisions (ADRs)
 
-1. **ADR-01 — Exclusion de Stripe & Séquestre :** Les paiements en ligne sont retirés du périmètre A2. Le modèle `Basket` conserve le champ `payment_method` (`CASH`, `TWINT_FARM`, `CARD_FARM`) afin de permettre l'ajout ultérieur d'un mode `ONLINE_ESCROW` sans casser le schéma.
-2. **ADR-02 — Géocodage côté serveur :** Lorsqu'un producteur soumet ou met à jour l'adresse de sa ferme (`C2-F1`, `C2-F4`), le backend interroge l'API gratuite suisse **geo.admin.ch** (`SearchServer`) avec repli sur **Nominatim (OpenStreetMap)** pour convertir l'adresse en `(latitude, longitude)` avant insertion en base.
-3. **ADR-03 — Stockage des bannières sans 2e base de données :** Les images uploadées via `multipart/form-data` sont enregistrées par `multer` dans `backend/uploads/` et servies statiquement sous `/uploads/<filename>`. Seul le chemin relatif est stocké dans SQLite.
-4. **ADR-04 — Rendu Markdown assaini côté serveur :** La description de la vitrine (`C2-F1`) est saisie en Markdown par le producteur. Le serveur la convertit en HTML (`marked`) puis l'assainit (`sanitize-html`, liste blanche de balises) **au moment de l'écriture**, et stocke les deux formes : `farms.description` (Markdown brut, source de vérité) et `farms.description_html` (rendu assaini servi aux clients). Assainir à la frontière d'écriture garantit que *tout* consommateur ultérieur (page ferme, popup carte, écran admin, futur client mobile) reçoit du HTML sûr sans avoir à y penser, et évite un parsing Markdown à chaque lecture (`C2-NF1`). Le Markdown brut est conservé pour pouvoir recalculer le rendu si la liste blanche évolue. Côté frontend, un rendu client (`marked` + `DOMPurify`) subsiste **uniquement** pour l'aperçu temps réel du texte non sauvegardé dans l'éditeur, et il est chargé en *lazy import* afin que les visiteurs publics ne téléchargent jamais ces dépendances.
-5. **ADR-05 — Service de notifications extensible (Strategy / Observer Pattern) :** La classe `NotificationService` écrit les notifications dans la table SQLite `notifications` (cloche interne `C3-F2`), tout en exposant une interface `NotificationChannel` permettant d'enregistrer ultérieurement un canal e-mail (`EmailChannel`) sans modifier les contrôleurs de commandes.
-6. **ADR-06 — Authentification légère unifiée :** Une seule table `users` gère les trois rôles (`CLIENT`, `FARMER`, `ADMIN`) via JWT. Aucun champ d'adresse ou de GPS n'existe sur `users` (`C1-NF1`).
-7. **ADR-07 — Autorisation côté serveur uniquement :** `requireAuth` valide la signature et l'expiration du JWT puis **relit l'utilisateur en base** à chaque requête (le rôle porté par le jeton n'est jamais considéré comme une vérité) ; `requireRole('FARMER' | 'ADMIN')` restreint ensuite l'accès. Les gardes Vue Router ne sont qu'un confort d'interface et ne constituent jamais la frontière de sécurité. Toutes les écritures producteur sont en outre filtrées en SQL par `owner_id = req.user.id`.
+1. **ADR-01 — Exclusion of Stripe & escrow:** Online payments are removed from the A2 scope. The `Basket` model keeps the `payment_method` field (`CASH`, `TWINT_FARM`, `CARD_FARM`) so that an `ONLINE_ESCROW` mode can be added later without breaking the schema.
+2. **ADR-02 — Server-side geocoding:** When a producer submits or updates their farm address (`C2-F1`, `C2-F4`), the backend queries the free Swiss **geo.admin.ch** API (`SearchServer`) with a fallback to **Nominatim (OpenStreetMap)** to convert the address into `(latitude, longitude)` before inserting it into the database. Results outside the Swiss bounds are rejected so a bad match never lands on the map.
+3. **ADR-03 — Banner storage without a second database:** Images uploaded via `multipart/form-data` are written by `multer` into `backend/uploads/` and served statically under `/uploads/<filename>`. Only the relative path is stored in SQLite. Filenames are randomised and the extension is derived from the MIME type; SVG is deliberately refused as it can carry script once served from our own origin.
+4. **ADR-04 — Server-side sanitised Markdown rendering:** The storefront description (`C2-F1`) is typed in Markdown by the producer. The server converts it to HTML (`marked`) then sanitises it (`sanitize-html`, tag allowlist) **at the write boundary**, and stores both forms: `farms.description` (raw Markdown, source of truth) and `farms.description_html` (sanitised rendition served to clients). Sanitising at the write boundary guarantees that *every* downstream consumer (farm page, map popup, admin screen, future mobile client) receives safe HTML without having to think about it, and avoids a Markdown parse on every read (`C2-NF1`). The raw Markdown is retained so the rendition can be recomputed if the allowlist evolves. On the frontend, a client-side renderer (`marked` + `DOMPurify`) remains **only** for the live preview of unsaved text in the editor, and it is lazy-loaded so public visitors never download those dependencies.
+5. **ADR-05 — Extensible notification service (Strategy / Observer Pattern):** The `NotificationService` class writes notifications into the `notifications` SQLite table (internal bell, `C3-F2`), while exposing a `NotificationChannel` interface allowing an e-mail channel (`EmailChannel`) to be registered later without modifying the order controllers.
+6. **ADR-06 — Unified lightweight authentication:** A single `users` table handles the three roles (`CLIENT`, `FARMER`, `ADMIN`) via JWT. No address or GPS field exists on `users` (`C1-NF1`).
+7. **ADR-07 — Server-side authorisation only:** `requireAuth` validates the JWT signature and expiry then **re-reads the user from the database** on every request (the role carried by the token is never treated as truth); `requireRole('FARMER' | 'ADMIN')` then restricts access. Vue Router guards are only a UI convenience and never constitute the security boundary. All producer writes are additionally filtered in SQL by `owner_id = req.user.id`.
 
 ## 3. SQLite Database Schema
 
-**Implémentation :** `backend/src/db.ts` (schéma + index), `backend/src/seed.ts` (jeu de démonstration), `backend/src/middleware/auth.ts` (JWT). Base par défaut : `backend/data/panierfermier.db` (surchargeable via `DB_PATH`, `:memory:` supporté). `foreign_keys = ON` est activé à chaque connexion et `journal_mode = WAL` en mode fichier.
+**Implementation:** `backend/src/db.ts` (schema + indexes), `backend/src/seed.ts` (demo dataset), `backend/src/middleware/auth.ts` (JWT). Default database: `backend/data/panierfermier.db` (overridable via `DB_PATH`, `:memory:` supported). `foreign_keys = ON` is enabled on every connection and `journal_mode = WAL` in file mode.
 
-**Index :** `farms(status)` (liste publique des fermes approuvées, `C2-NF1`), `farms(owner_id)`, `products(farm_id)`, `baskets(client_id)`, `baskets(farm_id)`, `basket_items(basket_id)`, `notifications(user_id, is_read)`, `notifications(basket_id)`.
+**Indexes:** `farms(status)` (public listing of approved farms, `C2-NF1`), `farms(owner_id)`, `products(farm_id)`, `baskets(client_id)`, `baskets(farm_id)`, `basket_items(basket_id)`, `notifications(user_id, is_read)`, `notifications(basket_id)`.
 
 ```sql
 CREATE TABLE users (
@@ -36,8 +36,8 @@ CREATE TABLE farms (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   owner_id INTEGER NOT NULL REFERENCES users(id),
   name TEXT NOT NULL,
-  description TEXT NOT NULL,          -- Markdown brut saisi par le producteur (source de vérité)
-  description_html TEXT NOT NULL DEFAULT '', -- rendu HTML assaini, servi aux clients (ADR-04)
+  description TEXT NOT NULL,          -- raw Markdown typed by the producer (source of truth)
+  description_html TEXT NOT NULL DEFAULT '', -- sanitised HTML rendition served to clients (ADR-04)
   address TEXT NOT NULL,
   latitude REAL NOT NULL,
   longitude REAL NOT NULL,
@@ -85,70 +85,69 @@ CREATE TABLE notifications (
 
 ```
 
-### 3.1. Seed de démonstration (`backend/src/seed.ts`)
+### 3.1. Demo seed (`backend/src/seed.ts`)
 
-Idempotent (aucune insertion si la table `users` contient déjà des lignes) et exécuté automatiquement au démarrage du serveur (`npm run seed` pour le lancer seul). Mot de passe commun : `password123`.
+Idempotent (no insertion if the `users` table already contains rows) and executed automatically on server start (`npm run seed` to run it standalone). Shared password: `password123`.
 
-| Rôle | Email | Ferme créée | Statut |
+| Role | Email | Farm created | Status |
 | :--- | :--- | :--- | :--- |
 | `ADMIN` | `sophie@example.ch` | — | — |
 | `CLIENT` | `clara@example.ch` | — | — |
 | `FARMER` | `marc@example.ch` | Ferme des Tilleuls (Fribourg) | `APPROVED` |
 | `FARMER` | `anna@example.ch` | Ferme du Vully (Sugiez) | `PENDING_APPROVAL` |
 
-Un producteur possède exactement une vitrine (`GET /api/farmer/farm`) : les 2 fermes demandées sont donc portées par 2 comptes `FARMER` distincts, ce qui préserve l'isolation `owner_id = req.user.id`. La ferme `APPROVED` alimente la carte (`C1-F1`), la ferme `PENDING_APPROVAL` permet de démontrer la validation administrateur (`C3-F1`). Les produits sont créés sans aucun champ de stock (`C2-F3`).
+A producer owns exactly one storefront (`GET /api/farmer/farm`): the 2 required farms are therefore carried by 2 distinct `FARMER` accounts, which preserves the `owner_id = req.user.id` isolation. The `APPROVED` farm feeds the map (`C1-F1`), while the `PENDING_APPROVAL` farm demonstrates administrator validation (`C3-F1`). Products are created without any stock field (`C2-F3`).
 
-### 3.2. Middlewares JWT (`backend/src/middleware/auth.ts`)
+### 3.2. JWT middlewares (`backend/src/middleware/auth.ts`)
 
-| Middleware | Comportement | Codes |
+| Middleware | Behaviour | Codes |
 | :--- | :--- | :--- |
-| `requireAuth` | Extrait le jeton `Authorization: Bearer <jwt>`, vérifie signature + expiration, puis recharge l'utilisateur en base. | `401` (en-tête absent/malformé, jeton invalide ou expiré, compte supprimé) |
-| `requireRole(...roles)` | Refuse l'accès si `req.user.role` n'appartient pas aux rôles autorisés. À monter après `requireAuth`. | `401` (non authentifié), `403` (rôle insuffisant) |
+| `requireAuth` | Extracts the `Authorization: Bearer <jwt>` token, verifies signature + expiry, then reloads the user from the database. | `401` (missing/malformed header, invalid or expired token, deleted account) |
+| `requireRole(...roles)` | Denies access if `req.user.role` is not among the allowed roles. Mount after `requireAuth`. | `401` (unauthenticated), `403` (insufficient role) |
 
-Le jeton est signé avec `JWT_SECRET` (obligatoire si `NODE_ENV=production`, repli de développement avec avertissement sinon) et expire après `JWT_EXPIRES_IN` (défaut `8h`). Le payload ne contient que `sub` (id), `email` et `role` : aucune donnée personnelle supplémentaire (`C1-NF1`).
+The token is signed with `JWT_SECRET` (mandatory when `NODE_ENV=production`, development fallback with a warning otherwise) and expires after `JWT_EXPIRES_IN` (default `8h`). The payload contains only `sub` (id), `email` and `role`: no additional personal data (`C1-NF1`).
 
 ## 4. REST API Contract
 
-### Authentification & Notifications (Tous rôles)
+### Authentication & Notifications (All roles)
 
-**Implémentation auth :** `backend/src/routes/auth.ts`, `frontend/src/components/AuthModal.vue`.
+**Auth implementation:** `backend/src/routes/auth.ts`, `frontend/src/components/AuthModal.vue`.
 
-* `POST /api/auth/register` — Création de compte (`CLIENT` ou `FARMER`). **Implémenté** : `201 { token, user, id }`. E-mail normalisé en minuscules ; mot de passe 8–72 caractères (limite bcrypt) ; `409` si l'e-mail existe ; `400` si `role` vaut `ADMIN` (auto-attribution interdite).
-* `POST /api/auth/login` — Connexion et retour du token JWT + profil utilisateur. **Implémenté** : `200 { token, user }`, `401` avec un message unique que l'e-mail soit inconnu ou le mot de passe faux (pas d'énumération de comptes).
-* `GET /api/auth/me` — Profil du porteur du jeton. **Implémenté** (`requireAuth`), permet au SPA de valider un jeton stocké au démarrage.
-* `GET /api/notifications` — Liste des notifications de l'utilisateur connecté (`C3-F2`). *Non implémenté (T1.4).*
-* `PATCH /api/notifications/:id/read` — Marque une notification comme lue. *Non implémenté (T1.4).*
+* `POST /api/auth/register` — Account creation (`CLIENT` or `FARMER`). **Implemented:** `201 { token, user, id }`. E-mail normalised to lowercase; password 8–72 characters (bcrypt limit); `409` if the e-mail already exists; `400` if `role` is `ADMIN` (self-assignment forbidden).
+* `POST /api/auth/login` — Login returning the JWT token + user profile. **Implemented:** `200 { token, user }`, `401` with a single message whether the e-mail is unknown or the password is wrong (no account enumeration).
+* `GET /api/auth/me` — Profile of the token holder. **Implemented** (`requireAuth`), lets the SPA validate a stored token on startup.
+* `GET /api/notifications` — List of the connected user's notifications (`C3-F2`). *Not implemented (T1.4).*
+* `PATCH /api/notifications/:id/read` — Marks a notification as read. *Not implemented (T1.4).*
 
-### Espace Client & Public (`/api/client/*`)
+### Client & Public area (`/api/client/*`)
 
-* `GET /api/client/farms` — Retourne toutes les fermes au statut `APPROVED` (`C1-F1`). **Implémenté** (`backend/src/routes/client.ts`, public, sans authentification).
-* `GET /api/client/farms/:id` — Détails d'une ferme approuvée + liste de ses produits (`C1-F2`). **Implémenté** : retourne `404` si la ferme n'existe pas ou n'est pas `APPROVED`.
-* `POST /api/client/baskets` — Crée une demande de panier (`C1-F3`, `C3-F3`).
-* `GET /api/client/baskets` — Liste les paniers du client connecté.
-* `PATCH /api/client/baskets/:id/respond` — Accepte (`CONFIRMED`) ou refuse (`REJECTED`) une offre (`C1-F4`).
+* `GET /api/client/farms` — Returns all farms with `APPROVED` status (`C1-F1`). **Implemented** (`backend/src/routes/client.ts`, public, no authentication).
+* `GET /api/client/farms/:id` — Details of an approved farm + its product list (`C1-F2`). **Implemented:** returns `404` if the farm does not exist or is not `APPROVED`.
+* `POST /api/client/baskets` — Creates a basket request (`C1-F3`, `C3-F3`). *Not implemented (T3.2).*
+* `GET /api/client/baskets` — Lists the connected client's baskets. *Not implemented (T3.3).*
+* `PATCH /api/client/baskets/:id/respond` — Accepts (`CONFIRMED`) or refuses (`REJECTED`) an offer (`C1-F4`). *Not implemented (T3.3).*
 
-### Espace Producteur (`/api/farmer/*` — Rôle `FARMER` requis)
+### Producer area (`/api/farmer/*` — `FARMER` role required)
 
-**Implémentation :** `backend/src/routes/farmer.ts` (routes), `backend/src/repositories/farms.ts` & `products.ts` (accès SQL filtré par `owner_id`), `backend/src/services/geocoder.ts`, `uploads.ts`, `markdown.ts`, `validation.ts`. Toutes les routes sont montées derrière `requireAuth` + `requireRole('FARMER')` et filtrées en SQL par `owner_id = req.user.id` (`ADR-07`).
+**Implementation:** `backend/src/routes/farmer.ts` (routes), `backend/src/repositories/farms.ts` & `products.ts` (SQL access filtered by `owner_id`), `backend/src/services/geocoder.ts`, `uploads.ts`, `markdown.ts`, `validation.ts`. All routes are mounted behind `requireAuth` + `requireRole('FARMER')` and filtered in SQL by `owner_id = req.user.id` (`ADR-07`).
 
-* `GET /api/farmer/farm` — Ferme du producteur connecté. **Implémenté** : `404` s'il n'en a pas encore créé.
-* `POST /api/farmer/farm` — Crée la vitrine (`multipart/form-data`, champ `banner` obligatoire) (`C2-F1`, `C2-F2`). **Implémenté** : géocodage serveur (`ADR-02`), statut `PENDING_APPROVAL`, `201 { farm, farmId }`. Erreurs : `400` (champ invalide, bannière manquante ou non-image, > 5 Mo), `409` (une vitrine existe déjà), `422` (`GEOCODING_FAILED` — adresse introuvable en Suisse).
-* `PUT /api/farmer/farm` — Met à jour la vitrine (`C2-F4`). **Implémenté** : `APPROVED` reste `APPROVED` (publication immédiate) ; `REJECTED` **repasse à `PENDING_APPROVAL`** pour revenir dans la file de validation ; bannière optionnelle (l'ancienne est conservée puis supprimée si remplacée) ; l'adresse n'est regéocodée que si elle a changé.
-* `POST /api/farmer/products` — Ajoute un produit sans stock (`C2-F3`). **Implémenté** : `201 { product }`, `409` si la vitrine n'existe pas encore.
-* `PUT /api/farmer/products/:id` & `DELETE /api/farmer/products/:id` — Modifie ou supprime un produit (`C2-F3`). **Implémenté** : `404` si le produit n'appartient pas au producteur (l'isolation est faite par jointure sur `farms.owner_id`).
-* `GET /api/farmer/baskets` — Liste les paniers reçus pour sa ferme. *Non implémenté (T3.4).*
-* `PATCH /api/farmer/baskets/:id/adjust` — Retire des articles indisponibles, recalcule le total et soumet l'offre (`C2-F5`, `C3-F3`). *Non implémenté (T3.4).*
+* `GET /api/farmer/farm` — Storefront of the connected producer. **Implemented:** `404` if none has been created yet.
+* `POST /api/farmer/farm` — Creates the storefront (`multipart/form-data`, mandatory `banner` field) (`C2-F1`, `C2-F2`). **Implemented:** server-side geocoding (`ADR-02`), `PENDING_APPROVAL` status, `201 { farm, farmId }`. Errors: `400` (invalid field, missing or non-image banner, > 5 MB), `409` (a storefront already exists), `422` (`GEOCODING_FAILED` — address not found in Switzerland).
+* `PUT /api/farmer/farm` — Updates the storefront (`C2-F4`). **Implemented:** `APPROVED` stays `APPROVED` (immediate publication); `REJECTED` **returns to `PENDING_APPROVAL`** to re-enter the validation queue; banner optional (the previous one is kept then deleted if replaced); the address is only re-geocoded when it has changed.
+* `POST /api/farmer/products` — Adds a product without stock (`C2-F3`). **Implemented:** `201 { product }`, `409` if the storefront does not exist yet.
+* `PUT /api/farmer/products/:id` & `DELETE /api/farmer/products/:id` — Modifies or deletes a product (`C2-F3`). **Implemented:** `404` if the product does not belong to the producer (isolation is achieved by joining on `farms.owner_id`).
+* `GET /api/farmer/baskets` — Lists the baskets received for their farm. *Not implemented (T3.4).*
+* `PATCH /api/farmer/baskets/:id/adjust` — Removes unavailable items, recalculates the total and submits the offer (`C2-F5`, `C3-F3`). *Not implemented (T3.4).*
 
-### Espace Administrateur (`/api/admin/*` — Rôle `ADMIN` requis)
+### Administrator area (`/api/admin/*` — `ADMIN` role required)
 
-**Implémentation :** `backend/src/routes/admin.ts` (volontairement minimal pour l'instant).
+**Implementation:** `backend/src/routes/admin.ts` (deliberately minimal for now).
 
-* `GET /api/admin/farms/pending` — Liste les fermes au statut `PENDING_APPROVAL`, de la plus ancienne à la plus récente (`C3-F1`). **Implémenté**.
-* `PATCH /api/admin/farms/:id/status` — Approuve (`APPROVED`) ou rejette (`REJECTED`) une ferme (`C3-F1`). **Implémenté** : seules ces deux transitions sont acceptées (`400` sinon), `404` si l'id est inconnu.
+* `GET /api/admin/farms/pending` — Lists farms with `PENDING_APPROVAL` status, oldest first (`C3-F1`). **Implemented.**
+* `PATCH /api/admin/farms/:id/status` — Approves (`APPROVED`) or rejects (`REJECTED`) a farm (`C3-F1`). **Implemented:** only those two transitions are accepted (`400` otherwise), `404` if the id is unknown.
 
 ## 5. Frontend Component Structure (`frontend/src/`)
 
-* **Structure actuelle :** `App.vue` (navbar + `<router-view>`), `router.ts` (4 routes), `auth.ts` (store réactif + `authHeaders`), `api.ts` (types partagés + appels typés), `markdown.ts` (aperçu Markdown chargé en lazy). Vues : `ClientView.vue` (carte MapLibre + popups), `FarmView.vue` (fiche ferme), `FarmerView.vue` (espace producteur), `AdminView.vue` (validation des fermes). Composants : `FarmEditor.vue`, `ProductManager.vue`, `AuthModal.vue`.
-* **Layouts (non livrés) :** `ClientLayout.vue` (carte + cloche + mes paniers), `FarmerLayout.vue` (menu vitrine/produits/commandes + cloche), `AdminLayout.vue`. Les 3 espaces sont pour l'instant 4 vues plates + une navbar commune.
-* **Composants partagés (non livrés) :** `NotificationBell.vue`.
-
+* **Current structure:** `App.vue` (navbar + `<router-view>`), `router.ts` (4 routes), `auth.ts` (reactive store + `authHeaders`), `api.ts` (shared types + typed calls), `markdown.ts` (lazy-loaded Markdown preview). Views: `ClientView.vue` (MapLibre map + popups), `FarmView.vue` (farm details), `FarmerView.vue` (producer area), `AdminView.vue` (farm validation). Components: `FarmEditor.vue`, `ProductManager.vue`, `AuthModal.vue`.
+* **Layouts (not delivered):** `ClientLayout.vue` (map + bell + my baskets), `FarmerLayout.vue` (storefront/products/orders menu + bell), `AdminLayout.vue`. The 3 areas are currently 4 flat views plus a shared navbar.
+* **Shared components (not delivered):** `NotificationBell.vue`.

@@ -1,27 +1,27 @@
-# Functional Requirements — Catégorie 3 : Administration, Notifications & Calculs
+# Functional Requirements — Category 3: Administration, Notifications & Calculations
 
-## C3-F1 - Approbation ferme
-* **ID :** `C3-F1`
-* **Statut A2 :** Inclus
-* **Description :** Un administrateur examine les nouvelles pages fermes en attente et valide ou rejette manuellement leur publication sur la carte.
-* **Critères d'acceptation :** L'approbation passe le statut de la ferme de `PENDING_APPROVAL` à `APPROVED` et la rend visible sur la carte publique (`C1-F1`) ; le rejet la passe à `REJECTED`.
+## C3-F1 - Farm approval
+* **ID:** `C3-F1`
+* **A2 status:** Included
+* **Description:** An administrator reviews newly created farm pages and manually validates or rejects their publication on the map.
+* **Acceptance criteria:** Approval moves the farm status from `PENDING_APPROVAL` to `APPROVED` and makes it visible on the public map (`C1-F1`); rejection moves it to `REJECTED`.
 
-## C3-F2 - Notifications commande
-* **ID :** `C3-F2`
-* **Statut A2 :** Inclus (cloche interne en base avec architecture extensible pour e-mail)
-* **Description :** Le système génère automatiquement une notification lors de la création d'un panier, de l'envoi d'une offre ajustée par le producteur, et de la décision finale du client.
-* **Critères d'acceptation :** Chaque transition d'état crée une notification non lue consultable dans la cloche de l'utilisateur destinataire et marquable comme lue.
+## C3-F2 - Order notifications
+* **ID:** `C3-F2`
+* **A2 status:** Included (internal in-database bell with an architecture extensible to e-mail)
+* **Description:** The system automatically generates a notification when a basket is created, when the producer submits an adjusted offer, and when the client makes the final decision.
+* **Acceptance criteria:** Each state transition creates an unread notification that can be consulted in the recipient's bell and marked as read.
 
-## C3-F3 - Calcul prix et commission
-* **ID :** `C3-F3`
-* **Statut A2 :** Inclus (taux commission = 0 % pour paiement sur place)
-* **Description :** Le système calcule automatiquement le prix total du panier à partir des produits retenus : $S = \sum (\text{prix}_i \times \text{quantité}_i)$.
-* **Critères d'acceptation :** Le sous-total et le total client sont recalculés exactement à chaque modification d'article dans un panier.
+## C3-F3 - Price and commission calculation
+* **ID:** `C3-F3`
+* **A2 status:** Included (commission rate = 0 % for on-site payment)
+* **Description:** The system automatically calculates the total basket price from the retained products: $S = \sum (\text{price}_i \times \text{quantity}_i)$.
+* **Acceptance criteria:** The producer subtotal and the client total are recalculated exactly on every item change within a basket.
 
-## C3-F4 - Libération fonds 7j
-* **ID :** `C3-F4`
-* **Statut A2 :** **Reporté (Deferred)** — Dépendant du séquestre Stripe exclu.
+## C3-F4 - 7-day fund release
+* **ID:** `C3-F4`
+* **A2 status:** **Deferred** — Depends on the excluded Stripe escrow.
 
-## C3-F5 - Arbitrage litige
-* **ID :** `C3-F5`
-* **Statut A2 :** **Reporté (Deferred)** — Dépendant du séquestre Stripe exclu.
+## C3-F5 - Dispute arbitration
+* **ID:** `C3-F5`
+* **A2 status:** **Deferred** — Depends on the excluded Stripe escrow.
