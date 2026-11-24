@@ -10,8 +10,6 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 let map: any = null;
 
-const truncate = (text: string, max = 350) =>
-  text.length <= max ? text : `${text.slice(0, max).trimEnd()}...`;
 
 function loadMapLibre(): Promise<any> {
   return new Promise((resolve) => {
@@ -29,30 +27,58 @@ function loadMapLibre(): Promise<any> {
   });
 }
 
+/**
+ * Escape text before interpolating it into an `innerHTML` template.
+ *
+ * Popup content is built as a string rather than with Vue templates, so every
+ * producer-controlled value (farm name, product names, units) must be escaped
+ * explicitly. The description is *not* escaped here: it is the server-rendered
+ * `descriptionHtml`, already sanitised at the write boundary (`ADR-04`).
+ */
+function esc(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Trim rendered HTML to a popup-sized excerpt without cutting a tag. */
+function truncateHtml(html: string, max = 350): string {
+  if (html.length <= max) return html;
+  const cut = html.slice(0, max);
+  const lastClose = cut.lastIndexOf(">");
+  return lastClose > 0 ? `${cut.slice(0, lastClose + 1)}…` : "";
+}
+
 function buildPopup(farm: Farm): HTMLElement {
   const el = document.createElement("div");
   el.className = "w-80 max-h-96 overflow-y-auto text-gray-900";
 
   const items = farm.products
-    .map((p) => `<li>${p.name} — ${p.unitPrice.toFixed(2)} CHF / ${p.unit}</li>`)
+    .map((p) => `<li>${esc(p.name)} — ${p.unitPrice.toFixed(2)} CHF / ${esc(p.unit)}</li>`)
     .join("");
 
-  // `bannerUrl` is nullable in SQLite (no upload yet, `C2-F1`).
+  // `bannerUrl` is nullable in SQLite when a farm has no photo yet (`C2-F1`).
   const banner = farm.bannerUrl
-    ? `<img src="${farm.bannerUrl}" alt="${farm.name}" class="block h-28 w-full object-cover" />`
+    ? `<img src="${esc(farm.bannerUrl)}" alt="${esc(farm.name)}" class="block h-28 w-full object-cover" />`
     : `<div class="flex h-28 w-full items-center justify-center bg-green-50 text-3xl">🌾</div>`;
+
+  // Only the server-rendered, sanitised rendition is injected as HTML.
+  const description = truncateHtml(farm.descriptionHtml || "");
 
   el.innerHTML = `
     ${banner}
     <div class="p-3 space-y-2">
       <div class="flex items-baseline justify-between gap-2">
-        <h3 class="text-base font-bold">${farm.name}</h3>
+        <h3 class="text-base font-bold">${esc(farm.name)}</h3>
         <a href="/ferme/${farm.id}" class="shrink-0 text-sm font-semibold text-green-700 hover:underline">ouvrir →</a>
       </div>
-      <p class="text-xs leading-relaxed text-gray-700">${truncate(farm.description)}</p>
-      <p class="text-xs"><strong>Paiements :</strong> ${farm.paymentMethods
-        .map(paymentMethodLabel)
-        .join(", ")}</p>
+      <div class="description-html text-xs leading-relaxed text-gray-700">${description}</div>
+      <p class="text-xs"><strong>Paiements :</strong> ${esc(
+        farm.paymentMethods.map(paymentMethodLabel).join(", "),
+      )}</p>
       <div class="text-xs">
         <strong>Produits :</strong>
         <ul class="mt-1 list-disc pl-4">${items}</ul>
@@ -61,6 +87,7 @@ function buildPopup(farm: Farm): HTMLElement {
   `;
 
   el.querySelector("a")?.addEventListener("click", (e) => {
+
     e.preventDefault();
     router.push(`/ferme/${farm.id}`);
   });

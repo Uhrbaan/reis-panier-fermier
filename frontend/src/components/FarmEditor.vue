@@ -6,7 +6,10 @@ import {
   type Farm,
   type PaymentMethod,
 } from "../api";
-import { renderRichText } from "../markdown";
+// `marked` + `DOMPurify` are only needed for the "Aperçu" tab, i.e. only for
+// producers. Public visitors read the server-rendered `descriptionHtml`, so the
+// renderer is imported lazily and stays out of the bundle they download.
+import type { renderMarkdownPreview as RenderPreview } from "../markdown";
 
 const props = defineProps<{
   farm: Farm | null;
@@ -36,7 +39,25 @@ const errorMsg = ref<string | null>(null);
 const successMsg = ref<string | null>(null);
 
 const isEditing = computed(() => props.farm !== null);
-const previewHtml = computed(() => renderRichText(form.description));
+/** Lazily resolved renderer, loaded the first time the preview tab is opened. */
+const previewRenderer = ref<typeof RenderPreview | null>(null);
+const previewHtml = ref("");
+
+async function refreshPreview() {
+  if (!previewRenderer.value) {
+    const module = await import("../markdown");
+    previewRenderer.value = module.renderMarkdownPreview;
+  }
+  previewHtml.value = previewRenderer.value(form.description);
+}
+
+// Only re-render while the preview tab is visible: no point paying the parse
+// cost for a tab the producer is not looking at.
+watch([() => form.description, descriptionTab], () => {
+  if (descriptionTab.value === "preview") {
+    void refreshPreview();
+  }
+});
 
 // Pré-remplit le formulaire dès que les données de la ferme arrivent
 watch(

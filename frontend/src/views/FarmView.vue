@@ -104,8 +104,13 @@ function submitOrder() {
       <!-- 2. Nom de la ferme -->
       <h1 class="text-2xl font-bold">{{ farm.name }}</h1>
 
-      <!-- 3. Description (complète) -->
-      <p class="leading-relaxed text-gray-700">{{ farm.description }}</p>
+      <!-- 3. Description (rendu HTML assaini par le serveur, ADR-04) -->
+      <div
+        v-if="farm.descriptionHtml"
+        class="description-html text-gray-700"
+        v-html="farm.descriptionHtml"
+      />
+      <p v-else class="leading-relaxed text-gray-700">{{ farm.description }}</p>
 
       <!-- 4. Adresse (formatée) -->
       <section>

@@ -1,8 +1,14 @@
-// Minimal auth store for T1.2 verification.
+// Authentication store (`T1.3`).
 //
 // The token is kept in localStorage so it survives a page reload. This is a
-// convenience for manual testing only — the real authority is the Express
-// `requireAuth` / `requireRole` middleware, never a Vue Router guard.
+// convenience only — the real authority is the Express `requireAuth` /
+// `requireRole` middleware, never a Vue Router guard.
+//
+// The reactive state below is what the UI binds to (navbar, login modal). The
+// `getToken()` / `getUser()` helpers remain the source of truth for request
+// headers, so `api.ts` keeps working unchanged.
+
+import { computed, reactive } from "vue";
 
 const TOKEN_KEY = "panierfermier.token";
 const USER_KEY = "panierfermier.user";
@@ -13,6 +19,27 @@ export interface SessionUser {
   email: string;
   role: "CLIENT" | "FARMER" | "ADMIN";
 }
+
+export interface AuthState {
+  token: string | null;
+  user: SessionUser | null;
+  /** True while a login/register request is in flight. */
+  pending: boolean;
+  /** Last human-readable auth error, cleared on the next attempt. */
+  error: string | null;
+}
+
+/** Reactive view of the session, hydrated from localStorage at startup. */
+export const authState = reactive<AuthState>({
+  token: getToken(),
+  user: getUser(),
+  pending: false,
+  error: null,
+});
+
+export const isAuthenticated = computed(() => authState.token !== null);
+export const currentUser = computed(() => authState.user);
+export const currentRole = computed(() => authState.user?.role ?? null);
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -31,11 +58,15 @@ export function getUser(): SessionUser | null {
 export function setSession(token: string, user: SessionUser): void {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  authState.token = token;
+  authState.user = user;
 }
 
 export function clearSession(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  authState.token = null;
+  authState.user = null;
 }
 
 /** Attach the JWT to a request when a session exists. */

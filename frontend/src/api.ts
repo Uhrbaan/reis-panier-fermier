@@ -5,6 +5,7 @@
 // because the server maps the SQLite snake_case columns in its DTOs.
 
 import { authHeaders } from "./auth";
+import type { SessionUser } from "./auth";
 
 export type PaymentMethod = "CASH" | "TWINT_FARM" | "CARD_FARM";
 
@@ -19,7 +20,13 @@ export interface Product {
 export interface Farm {
   id: number;
   name: string;
+  /** Raw Markdown as typed by the producer (only used to pre-fill the editor). */
   description: string;
+  /**
+   * Sanitised HTML rendition produced and stored server-side (`ADR-04`).
+   * This is what public views render with `v-html` — never `description`.
+   */
+  descriptionHtml: string;
   address: string;
   latitude: number;
   longitude: number;
@@ -138,9 +145,10 @@ export async function createProduct(input: ProductInput): Promise<Product> {
   const response = await fetch(`${API_BASE}/farmer/products`, {
     method: "POST",
     headers: {
+      // Spread the auth header first: it must never override Content-Type.
+      ...authHeaders(),
       "Content-Type": "application/json",
       Accept: "application/json",
-      ...authHeaders(),
     },
     body: JSON.stringify(input),
   });
@@ -157,9 +165,10 @@ export async function updateProduct(
   const response = await fetch(`${API_BASE}/farmer/products/${productId}`, {
     method: "PUT",
     headers: {
+      // Spread the auth header first: it must never override Content-Type.
+      ...authHeaders(),
       "Content-Type": "application/json",
       Accept: "application/json",
-      ...authHeaders(),
     },
     body: JSON.stringify(input),
   });
@@ -178,4 +187,84 @@ export async function deleteProduct(productId: number): Promise<void> {
   if (!response.ok) {
     await handleResponse(response);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Authentification (`T1.3`)
+// ---------------------------------------------------------------------------
+
+export interface AuthResponse {
+  token: string;
+  user: SessionUser;
+}
+
+/** Connexion ; renvoie le jeton et le profil (`POST /api/auth/login`). */
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  return handleResponse<AuthResponse>(response);
+}
+
+export interface RegisterInput {
+  name: string;
+  email: string;
+  password: string;
+  role: "CLIENT" | "FARMER";
+}
+
+/** Inscription ; ouvre directement une session (`POST /api/auth/register`). */
+export async function register(input: RegisterInput): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  return handleResponse<AuthResponse>(response);
+}
+
+/** Profil de l'utilisateur connecté (`GET /api/auth/me`). */
+export async function fetchMe(): Promise<SessionUser> {
+  const response = await fetch(`${API_BASE}/auth/me`, {
+    headers: { Accept: "application/json", ...authHeaders() },
+  });
+
+  const data = await handleResponse<{ user: SessionUser }>(response);
+  return data.user;
+}
+
+// ---------------------------------------------------------------------------
+// Administration (`C3-F1`)
+// ---------------------------------------------------------------------------
+
+/** Fermes en attente de validation, de la plus ancienne à la plus récente. */
+export async function fetchPendingFarms(): Promise<Farm[]> {
+  const response = await fetch(`${API_BASE}/admin/farms/pending`, {
+    headers: { Accept: "application/json", ...authHeaders() },
+  });
+
+  const data = await handleResponse<{ farms: Farm[] }>(response);
+  return data.farms;
+}
+
+/** Approuve (`APPROVED`) ou rejette (`REJECTED`) une ferme (`C3-F1`). */
+export async function setFarmStatus(
+  farmId: number,
+  status: "APPROVED" | "REJECTED"
+): Promise<void> {
+  const response = await fetch(`${API_BASE}/admin/farms/${farmId}/status`, {
+    method: "PATCH",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  await handleResponse(response);
 }

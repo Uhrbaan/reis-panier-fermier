@@ -11,6 +11,13 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      // Farm banners are served by Express from `backend/uploads/` (ADR-03).
+      // Without this entry the SPA asks Vite for `/uploads/...`, gets a 404 and
+      // every banner appears broken in dev.
+      "/uploads": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 });

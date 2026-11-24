@@ -1,31 +1,18 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { fetchMyFarm, type Farm, type Product } from "../api";
-import { getToken, getUser, setSession, clearSession } from "../auth";
+import { authState, clearSession, currentRole } from "../auth";
+import AuthModal from "../components/AuthModal.vue";
 import FarmEditor from "../components/FarmEditor.vue";
 import ProductManager from "../components/ProductManager.vue";
 
-const token = ref(getToken());
-const pastedToken = ref("");
-
 const farm = ref<Farm | null>(null);
-//si aucune ferme n'existe, affiche une ferme test 
-//tant que backend n'est pas fait
-/*const farm = ref<Farm | null>({
-  id: 1,
-  name: "Ferme de test",
-  description: "## Bienvenue\n- Légumes frais",
-  address: "Route du Coteau 12, 1700 Fribourg",
-  latitude: 46.8,
-  longitude: 7.16,
-  bannerUrl: null,
-  openingHours: "Samedi : 08h30 – 12h30",
-  paymentMethods: ["CASH", "TWINT_FARM"],
-  status: "APPROVED",
-  products: [{ id: 1, farmId: 1, name: "Tomates", unit: "kg", unitPrice: 4.5 }],
-});*/
 const loading = ref(false);
 const loadError = ref<string | null>(null);
+
+/** A producer session is required to manage a storefront. */
+const isFarmer = computed(() => currentRole.value === "FARMER");
+const isLoggedIn = computed(() => authState.token !== null);
 
 const statusInfo = computed(() => {
   if (!farm.value) return null;
@@ -49,7 +36,7 @@ const statusInfo = computed(() => {
 });
 
 async function loadFarm() {
-  if (!token.value) return;
+  if (!isFarmer.value) return;
   loading.value = true;
   loadError.value = null;
   try {
@@ -62,17 +49,10 @@ async function loadFarm() {
   }
 }
 
-async function applyDevToken() {
-  const value = pastedToken.value.trim();
-  if (!value) return;
-  setSession(value, getUser() ?? { id: 0, name: "Producteur", email: "marc@example.ch", role: "FARMER" });
-  token.value = value;
-  await loadFarm();
-}
+
 
 function logout() {
   clearSession();
-  token.value = null;
   farm.value = null;
   loadError.value = null;
 }
@@ -87,7 +67,18 @@ function onProductsUpdated(products: Product[]) {
   }
 }
 
-onMounted(loadFarm); //comment if you want to see the catalogue part
+// Load as soon as a producer session exists (including after login).
+watch(
+  isFarmer,
+  (farmer) => {
+    if (farmer) void loadFarm();
+  },
+  { immediate: true },
+);
+
+onMounted(() => {
+  if (isFarmer.value) void loadFarm();
+});
 </script>
 
 <template>
@@ -107,7 +98,8 @@ onMounted(loadFarm); //comment if you want to see the catalogue part
           {{ statusInfo.label }}
         </span>
         <button
-          v-if="token"
+        <button
+          v-if="isLoggedIn"
           type="button"
           class="rounded border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
           @click="logout"
@@ -117,31 +109,22 @@ onMounted(loadFarm); //comment if you want to see the catalogue part
       </div>
     </header>
 
-    <!-- Connexion temporaire (en attendant le futur écran de login) -->
+    <!-- 1. Pas de session : vrai écran de connexion/inscription (`T1.3`) -->
+    <AuthModal
+      v-if="!isLoggedIn"
+      initial-mode="login"
+      forced-role="FARMER"
+      @authenticated="loadFarm"
+    />
+
+    <!-- 2. Connecté mais avec un autre rôle -->
     <div
-      v-if="!token"
-      class="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm"
+      v-else-if="!isFarmer"
+      class="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
     >
-      <p class="font-medium text-amber-900">
-        Connecte-toi avec un compte Producteur pour gérer ta vitrine.
-      </p>
-      <p class="text-xs text-amber-800">
-        En développement, génère un jeton avec :
-        <code class="rounded bg-white px-1.5 py-0.5">cd backend &amp;&amp; npm run token -- marc@example.ch</code>
-      </p>
-      <textarea
-        v-model="pastedToken"
-        rows="2"
-        class="w-full rounded border border-amber-300 bg-white p-2 font-mono text-xs"
-        placeholder="Colle ton jeton JWT ici (eyJhbGciOi...)"
-      />
-      <button
-        type="button"
-        class="rounded bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800"
-        @click="applyDevToken"
-      >
-        Utiliser ce jeton
-      </button>
+      Ce compte n'a pas le rôle <strong>FARMER</strong>. Crée un compte producteur ou
+      connecte-toi avec un compte de démonstration
+      (<code>marc@example.ch</code>).
     </div>
 
     <template v-else>
