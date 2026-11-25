@@ -3,6 +3,11 @@ import { Router, type Request, type Response } from 'express';
 import { db } from '../db.js';
 import { asyncHandler, requireAuth, requireRole } from '../middleware/auth.js';
 import {
+  adjustBasket,
+  findBasketForFarmer,
+  listBasketsByFarmer,
+} from '../repositories/baskets.js';
+import {
   createFarm,
   findBannerUrlByOwnerId,
   findFarmByOwnerId,
@@ -17,10 +22,12 @@ import {
   updateProduct,
 } from '../repositories/products.js';
 import { geocodeAddress } from '../services/geocoder.js';
+import { notificationService } from '../services/notifications.js';
 import { bannerUrlFor, removeBannerFile, uploadBanner } from '../services/uploads.js';
 import {
   LIMITS,
   parseId,
+  parseItemIds,
   parsePaymentMethods,
   parseUnitPrice,
   requiredMultiline,
@@ -332,11 +339,90 @@ farmerRouter.delete('/products/:id', (req: Request, res: Response) => {
     return;
   }
 
-  const deleted = deleteProduct(db, req.user!.id, productId);
-  if (!deleted) {
+  const outcome = deleteProduct(db, req.user!.id, productId);
+
+  if (outcome === 'NOT_FOUND') {
     notFound(res, 'Product not found.');
     return;
   }
 
+  if (outcome === 'REFERENCED_IN_BASKET') {
+    // Baskets keep their price snapshot (`C3-F3`), but the line still needs the
+    // product row, so history blocks the deletion instead of silently breaking.
+    res.status(409).json({
+      error: 'CONFLICT',
+      message: 'This product appears in an existing basket and cannot be deleted.',
+    });
+    return;
+  }
+
   res.status(204).end();
+});
+
+// ---------------------------------------------------------------------------
+// Received baskets (`C2-F5`, `C3-F3`)
+// ---------------------------------------------------------------------------
+
+/** Baskets received by the connected producer's farm, newest first. */
+farmerRouter.get('/baskets', (req: Request, res: Response) => {
+  res.json({ baskets: listBasketsByFarmer(db, req.user!.id) });
+});
+
+/**
+ * Remove unavailable items and submit the adjusted offer (`C2-F5`).
+ *
+ * The total is always recomputed server-side from the price snapshot
+ * (`C3-F3`): the producer validates a price, they never set one.
+ */
+farmerRouter.patch('/baskets/:id/adjust', (req: Request, res: Response) => {
+  const basketId = parseId(req.params.id);
+  if (basketId === undefined) {
+    badRequest(res, 'Invalid basket id.');
+    return;
+  }
+
+  const body = req.body as Record<string, unknown>;
+  const removed = parseItemIds(body.removedItemIds);
+  if (!removed.ok) {
+    badRequest(res, removed.message);
+    return;
+  }
+
+  const outcome = adjustBasket(db, req.user!.id, basketId, removed.value);
+
+  if (!outcome.ok) {
+    if (outcome.reason === 'NOT_FOUND') {
+      notFound(res, 'Basket not found.');
+      return;
+    }
+
+    if (outcome.reason === 'INVALID_ITEM') {
+      badRequest(res, `Item ${outcome.itemId} is not part of this basket.`);
+      return;
+    }
+
+    res.status(409).json({
+      error: 'INVALID_TRANSITION',
+      message: 'This basket is no longer awaiting your validation.',
+    });
+    return;
+  }
+
+  const basket = findBasketForFarmer(db, req.user!.id, basketId);
+
+  // The client is told the offer is ready — or that nothing is left (`C3-F2`).
+  if (basket) {
+    db.transaction(() => {
+      notificationService.notify(db, {
+        userId: basket.clientId,
+        message:
+          outcome.status === 'OFFER_PROPOSED'
+            ? `${basket.farmName} adjusted your basket #${basketId}: ${outcome.totalAmount.toFixed(2)} CHF. Accept or refuse it.`
+            : `${basket.farmName} could not fulfil basket #${basketId}: no item was available.`,
+        basketId,
+      });
+    })();
+  }
+
+  res.json({ basket });
 });

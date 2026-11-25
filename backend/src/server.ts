@@ -8,6 +8,7 @@ import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
 import { clientRouter } from './routes/client.js';
 import { farmerRouter } from './routes/farmer.js';
+import { notificationsRouter } from './routes/notifications.js';
 import { seedDatabase } from './seed.js';
 import { UPLOADS_DIR, UPLOADS_URL_PREFIX } from './services/uploads.js';
 
@@ -33,6 +34,9 @@ app.use('/api/auth', authRouter);
 
 // Public client browsing: approved farms only (`C1-F1`, `C1-F2`).
 app.use('/api/client', clientRouter);
+
+// In-app notifications, scoped to the connected user (`C3-F2`).
+app.use('/api/notifications', notificationsRouter);
 
 // Producer area — role isolation enforced server-side (`C2-F1` … `C2-F4`).
 app.use('/api/farmer', farmerRouter);

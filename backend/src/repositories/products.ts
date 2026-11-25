@@ -115,18 +115,40 @@ export function updateProduct(
  * Delete a product owned by this producer.
  * @returns `false` when the product does not exist or belongs to someone else.
  */
+export type DeleteProductOutcome = 'DELETED' | 'NOT_FOUND' | 'REFERENCED_IN_BASKET';
+
+/**
+ * Delete a product owned by this producer.
+ *
+ * `basket_items.product_id` references `products(id)` without `ON DELETE`, and
+ * `foreign_keys = ON`, so a product that appears in an existing basket cannot be
+ * removed without destroying order history. Rather than letting SQLite raise
+ * `FOREIGN KEY constraint failed` (a 500), the conflict is reported explicitly
+ * and the caller answers 409: baskets keep their own price snapshot, but the
+ * line still needs the product row to resolve its name.
+ *
+ * @returns `'NOT_FOUND'` when the product does not exist or belongs to someone
+ * else (the two cases are deliberately indistinguishable).
+ */
 export function deleteProduct(
   db: Database.Database,
   ownerId: number,
   productId: number,
-): boolean {
-  const result = db
-    .prepare(
-      `DELETE FROM products
-        WHERE id = ?
-          AND farm_id IN (SELECT id FROM farms WHERE owner_id = ?)`,
-    )
-    .run(productId, ownerId);
+): DeleteProductOutcome {
+  const owned = findOwnedProduct(db, ownerId, productId);
+  if (!owned) {
+    return 'NOT_FOUND';
+  }
 
-  return result.changes > 0;
+  const references = db
+    .prepare('SELECT COUNT(*) AS count FROM basket_items WHERE product_id = ?')
+    .get(productId) as { count: number };
+
+  if (references.count > 0) {
+    return 'REFERENCED_IN_BASKET';
+  }
+
+  db.prepare('DELETE FROM products WHERE id = ?').run(productId);
+
+  return 'DELETED';
 }

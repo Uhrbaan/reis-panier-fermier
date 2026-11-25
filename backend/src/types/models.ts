@@ -48,6 +48,8 @@ export interface FarmRow {
   owner_id: number;
   name: string;
   description: string;
+  /** Sanitised HTML rendition of `description`, stored server-side (`ADR-04`). */
+  description_html: string;
   address: string;
   latitude: number;
   longitude: number;

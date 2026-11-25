@@ -18,6 +18,10 @@ export const LIMITS = {
   description: 4000,
   productName: 120,
   productUnit: 40,
+  /** Upper bound per line; the SPA caps at 50, this is the server-side guard. */
+  basketQuantity: 999,
+  /** A basket longer than this is a mistake, not a grocery order. */
+  basketLines: 100,
 } as const;
 
 export type ValidationResult<T> = { ok: true; value: T } | { ok: false; message: string };
@@ -144,4 +148,113 @@ export function parseId(raw: unknown): number | undefined {
 
   const value = Number(raw);
   return Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+/**
+ * Like `parseId`, but also accepts a real JSON number.
+ *
+ * Route params are always strings, whereas ids in a JSON body (`farmId`) arrive
+ * as numbers; this keeps both paths on the same validation rule.
+ */
+export function parseIdLike(raw: unknown): number | undefined {
+  if (typeof raw === 'number') {
+    return Number.isInteger(raw) && raw > 0 ? raw : undefined;
+  }
+
+  return parseId(raw);
+}
+
+/** A single farm-gate payment method chosen by the client (`C1-F3`). */
+export function parsePaymentMethod(raw: unknown): ValidationResult<PaymentMethod> {
+  if (!isFarmGatePaymentMethod(raw)) {
+    return fail('paymentMethod must be CASH, TWINT_FARM or CARD_FARM (on-site payments only).');
+  }
+
+  return ok(raw);
+}
+
+/** A boolean flag from a JSON body (`respond` / `accept`). */
+export function parseBoolean(raw: unknown, field: string): ValidationResult<boolean> {
+  if (typeof raw !== 'boolean') {
+    return fail(`${field} must be true or false.`);
+  }
+
+  return ok(raw);
+}
+
+export interface BasketLinePayload {
+  productId: number;
+  quantity: number;
+}
+
+/**
+ * Parse the requested lines of a basket (`C1-F3`).
+ *
+ * Rejects duplicates instead of merging them: silently summing two lines for
+ * the same product would make the request differ from what the client saw on
+ * screen, and the SPA never produces duplicates.
+ */
+export function parseBasketLines(raw: unknown): ValidationResult<BasketLinePayload[]> {
+  if (!Array.isArray(raw)) {
+    return fail('lines must be an array of { productId, quantity }.');
+  }
+
+  if (raw.length === 0) {
+    return fail('A basket must contain at least one item.');
+  }
+
+  if (raw.length > LIMITS.basketLines) {
+    return fail(`A basket may contain at most ${LIMITS.basketLines} lines.`);
+  }
+
+  const lines: BasketLinePayload[] = [];
+  const seen = new Set<number>();
+
+  for (const entry of raw) {
+    if (typeof entry !== 'object' || entry === null) {
+      return fail('Each line must be an object with productId and quantity.');
+    }
+
+    const { productId, quantity } = entry as Record<string, unknown>;
+
+    if (typeof productId !== 'number' || !Number.isInteger(productId) || productId <= 0) {
+      return fail('Each line needs a valid productId.');
+    }
+
+    if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity < 1) {
+      return fail('Each line needs a quantity of at least 1.');
+    }
+
+    if (quantity > LIMITS.basketQuantity) {
+      return fail(`Quantity may not exceed ${LIMITS.basketQuantity} per line.`);
+    }
+
+    if (seen.has(productId)) {
+      return fail('The same product may not appear twice in a basket.');
+    }
+
+    seen.add(productId);
+    lines.push({ productId, quantity });
+  }
+
+  return ok(lines);
+}
+
+/** Parse a list of basket item ids to remove (`C2-F5`). */
+export function parseItemIds(raw: unknown): ValidationResult<number[]> {
+  if (!Array.isArray(raw)) {
+    return fail('removedItemIds must be an array of item ids.');
+  }
+
+  const ids: number[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== 'number' || !Number.isInteger(entry) || entry <= 0) {
+      return fail('removedItemIds must only contain valid item ids.');
+    }
+    if (!ids.includes(entry)) {
+      ids.push(entry);
+    }
+  }
+
+  return ok(ids);
 }

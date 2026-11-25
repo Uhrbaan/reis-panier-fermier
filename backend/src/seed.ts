@@ -124,6 +124,73 @@ function insertProduct(db: Database.Database, farmId: number, product: SeedProdu
 }
 
 /**
+ * Two demo baskets so the client and producer basket views are not empty on a
+ * fresh checkout: one still awaiting the producer, one already adjusted.
+ *
+ * They go through the same tables the API writes, with the price snapshot taken
+ * from the seeded catalogue, so the totals are consistent with `C3-F3`.
+ */
+function insertDemoBaskets(
+  db: Database.Database,
+  clientId: number,
+  farmId: number,
+): void {
+  const products = db
+    .prepare('SELECT id, unit_price FROM products WHERE farm_id = ? ORDER BY id')
+    .all(farmId) as { id: number; unit_price: number }[];
+
+  if (products.length < 2) {
+    return;
+  }
+
+  const [first, second] = products as [
+    { id: number; unit_price: number },
+    { id: number; unit_price: number },
+  ];
+
+  const createBasket = (status: string, paymentMethod: string): number => {
+    const basket = db
+      .prepare(
+        `INSERT INTO baskets (client_id, farm_id, payment_method, status, total_amount)
+         VALUES (?, ?, ?, ?, 0)`,
+      )
+      .run(clientId, farmId, paymentMethod, status);
+
+    return Number(basket.lastInsertRowid);
+  };
+
+  const insertItem = db.prepare(
+    `INSERT INTO basket_items (basket_id, product_id, quantity, unit_price_snapshot, removed_by_farmer)
+     VALUES (?, ?, ?, ?, ?)`,
+  );
+
+  const setTotal = (basketId: number): void => {
+    const row = db
+      .prepare(
+        `SELECT COALESCE(SUM(quantity * unit_price_snapshot), 0) AS total
+           FROM basket_items
+          WHERE basket_id = ? AND removed_by_farmer = 0`,
+      )
+      .get(basketId) as { total: number };
+
+    db.prepare('UPDATE baskets SET total_amount = ? WHERE id = ?').run(row.total, basketId);
+  };
+
+  // 1. Awaiting the producer.
+  const pending = createBasket('PENDING_FARMER', 'CASH');
+  insertItem.run(pending, first.id, 2, first.unit_price, 0);
+  insertItem.run(pending, second.id, 1, second.unit_price, 0);
+  setTotal(pending);
+
+  // 2. Already adjusted: the second line was unavailable, so it is excluded
+  //    from the total and the client is waiting to decide (`C2-F5`).
+  const proposed = createBasket('OFFER_PROPOSED', 'TWINT_FARM');
+  insertItem.run(proposed, first.id, 1, first.unit_price, 0);
+  insertItem.run(proposed, second.id, 1, second.unit_price, 1);
+  setTotal(proposed);
+}
+
+/**
  * Insert the demo dataset: 1 ADMIN, 1 CLIENT, 2 FARMERs with one farm each.
  * Idempotent: does nothing once any user exists, so it is safe to call on boot.
  *
@@ -137,8 +204,11 @@ export function seedDatabase(db: Database.Database): boolean {
   const passwordHash = hashPassword(DEMO_PASSWORD);
 
   const seed = db.transaction(() => {
-    insertUser(db, { ...SEED_ADMIN, password_hash: passwordHash, role: 'ADMIN' });
-    insertUser(db, { ...SEED_CLIENT, password_hash: passwordHash, role: 'CLIENT' });
+    const adminId = insertUser(db, { ...SEED_ADMIN, password_hash: passwordHash, role: 'ADMIN' });
+    void adminId;
+    const clientId = insertUser(db, { ...SEED_CLIENT, password_hash: passwordHash, role: 'CLIENT' });
+
+    const farms: { farmId: number; status: string }[] = [];
 
     for (const farmer of SEED_FARM_USERS) {
       const ownerId = insertUser(db, {
@@ -148,9 +218,16 @@ export function seedDatabase(db: Database.Database): boolean {
         role: 'FARMER',
       });
       const farmId = insertFarm(db, ownerId, farmer.farm);
+      farms.push({ farmId, status: farmer.farm.status });
       for (const product of farmer.farm.products) {
         insertProduct(db, farmId, product);
       }
+    }
+
+    // Demo baskets so both new views are non-empty on a fresh checkout.
+    const approved = farms.find((entry) => entry.status === 'APPROVED');
+    if (approved) {
+      insertDemoBaskets(db, clientId, approved.farmId);
     }
   });
 
