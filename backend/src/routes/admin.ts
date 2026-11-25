@@ -2,16 +2,19 @@ import { Router, type Request, type Response } from 'express';
 
 import { db } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { findBasketByReference } from '../repositories/baskets.js';
 import { listPendingFarms, setFarmStatus } from '../repositories/farms.js';
-import { parseId } from '../services/validation.js';
+import { isBasketReference } from '../services/references.js';
+import { parseId, routeParam } from '../services/validation.js';
 import { FARM_STATUSES, type FarmStatus } from '../types/models.js';
 
 /**
- * Administration (`C3-F1`) — deliberately minimal for now.
+ * Administration (`C3-F1`, `C3-F5`) — deliberately minimal.
  *
- * An admin only needs to see what is waiting for validation and to approve or
- * reject it. Anything richer (audit trail, reasons, bulk actions) is out of
- * scope for the prototype.
+ * An admin only needs to see what is waiting for validation, to approve or
+ * reject it, and to identify a basket from the reference a client quotes when
+ * reporting a problem. Anything richer (audit trail, reasons, bulk actions) is
+ * out of scope for the prototype.
  */
 export const adminRouter = Router();
 
@@ -62,4 +65,31 @@ adminRouter.patch('/farms/:id/status', (req: Request, res: Response) => {
   }
 
   res.json({ id: farmId, status: requested });
+});
+
+/**
+ * Look up a basket by its public reference (`C3-F5`).
+ *
+ * This is what makes the reference useful during a dispute: the client quotes
+ * it, and the administrator can see which basket is being discussed, who
+ * ordered it (account or guest) and where it stands. It is read-only on
+ * purpose — arbitration still happens off-platform, and granting the admin the
+ * ability to answer *as* the client would blur who agreed to what.
+ */
+adminRouter.get('/baskets/:reference', (req: Request, res: Response) => {
+  const reference = routeParam(req.params.reference) ?? '';
+
+  if (!isBasketReference(reference)) {
+    res.status(400).json({ error: 'BAD_REQUEST', message: 'Invalid basket reference.' });
+    return;
+  }
+
+  const basket = findBasketByReference(db, reference);
+
+  if (!basket) {
+    res.status(404).json({ error: 'NOT_FOUND', message: 'No basket with this reference.' });
+    return;
+  }
+
+  res.json({ basket });
 });

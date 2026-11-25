@@ -56,11 +56,18 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE TABLE IF NOT EXISTS baskets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  client_id INTEGER NOT NULL REFERENCES users(id),
+  -- NULL for a guest basket: ordering does not require an account (C1-F3).
+  client_id INTEGER REFERENCES users(id),
   farm_id INTEGER NOT NULL REFERENCES farms(id),
   payment_method TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'PENDING_FARMER' CHECK(status IN ('PENDING_FARMER', 'OFFER_PROPOSED', 'CONFIRMED', 'REJECTED')),
   total_amount REAL NOT NULL DEFAULT 0,
+  -- Short human reference quoted when contacting support about a dispute
+  -- (C3-F5). It is *not* a secret: it cannot open the basket on its own.
+  reference TEXT,
+  -- Secret capability held by a guest, carried in their access link. NULL for
+  -- baskets owned by a registered account, which are reached via client_id.
+  access_token TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -121,6 +128,18 @@ export function createDatabase(databasePath: string = resolveDatabasePath()): Da
 export function initializeSchema(connection: Database.Database): void {
   connection.exec(SCHEMA_SQL);
   applyMigrations(connection);
+  // Must run *after* the migration: on a database created before guest baskets
+  // existed, `reference`/`access_token` do not exist yet, so indexing them in
+  // `SCHEMA_SQL` would fail before the migration had a chance to add them.
+  ensureGuestIndexes(connection);
+}
+
+/** Unique indexes backing the guest lookup paths (`C1-F3`). */
+function ensureGuestIndexes(connection: Database.Database): void {
+  connection.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_baskets_reference ON baskets(reference);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_baskets_access_token ON baskets(access_token);
+  `);
 }
 
 interface TableColumn {
@@ -147,6 +166,83 @@ function applyMigrations(connection: Database.Database): void {
   // Backfill rows written before the rendition existed, so already-seeded farms
   // are not served with an empty description.
   backfillDescriptionHtml(connection);
+
+  migrateBasketsForGuests(connection);
+}
+
+/**
+ * Relax `baskets.client_id` to nullable and add the guest columns.
+ *
+ * `CREATE TABLE IF NOT EXISTS` cannot change an existing table, and SQLite has
+ * no `ALTER TABLE ... ALTER COLUMN ... DROP NOT NULL`. The only portable way to
+ * drop a NOT NULL constraint is to rebuild the table:
+ *
+ *   1. `foreign_keys = OFF` — otherwise dropping `baskets` would cascade into
+ *      `basket_items` and `notifications`;
+ *   2. create the replacement, copy every row, drop the original, rename;
+ *   3. `PRAGMA foreign_key_check` before committing, to prove the copy did not
+ *      orphan anything;
+ *   4. `foreign_keys = ON` again.
+ *
+ * SQLite cannot toggle that pragma inside a transaction, so the sequence is run
+ * as a unit and verified afterwards instead. Guarded by a column check, so it
+ * runs at most once per database.
+ */
+function migrateBasketsForGuests(connection: Database.Database): void {
+  const columns = connection.prepare('PRAGMA table_info(baskets)').all() as Array<
+    TableColumn & { notnull: number }
+  >;
+
+  const clientId = columns.find((column) => column.name === 'client_id');
+  const hasReference = columns.some((column) => column.name === 'reference');
+  const hasAccessToken = columns.some((column) => column.name === 'access_token');
+
+  // Already migrated: nothing to relax and both guest columns are present.
+  if (clientId && clientId.notnull === 0 && hasReference && hasAccessToken) {
+    return;
+  }
+
+  connection.pragma('foreign_keys = OFF');
+
+  try {
+    connection.exec(`
+      BEGIN;
+
+      CREATE TABLE baskets_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER REFERENCES users(id),
+        farm_id INTEGER NOT NULL REFERENCES farms(id),
+        payment_method TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'PENDING_FARMER' CHECK(status IN ('PENDING_FARMER', 'OFFER_PROPOSED', 'CONFIRMED', 'REJECTED')),
+        total_amount REAL NOT NULL DEFAULT 0,
+        reference TEXT,
+        access_token TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      INSERT INTO baskets_new (id, client_id, farm_id, payment_method, status, total_amount, created_at)
+        SELECT id, client_id, farm_id, payment_method, status, total_amount, created_at FROM baskets;
+
+      DROP TABLE baskets;
+      ALTER TABLE baskets_new RENAME TO baskets;
+
+      CREATE INDEX IF NOT EXISTS idx_baskets_client_id ON baskets(client_id);
+      CREATE INDEX IF NOT EXISTS idx_baskets_farm_id ON baskets(farm_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_baskets_reference ON baskets(reference);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_baskets_access_token ON baskets(access_token);
+
+      COMMIT;
+    `);
+
+    const orphans = connection.prepare('PRAGMA foreign_key_check').all();
+    if (orphans.length > 0) {
+      throw new Error(
+        `baskets migration left ${orphans.length} orphaned row(s); refusing to continue`,
+      );
+    }
+  } finally {
+    connection.pragma('foreign_keys = ON');
+  }
 }
 
 /**

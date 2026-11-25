@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 
 import { computeClientTotal, computeSubtotal, roundMoney } from '../services/pricing.js';
+import { generateAccessToken, generateBasketReference } from '../services/references.js';
 import type { BasketStatus, PaymentMethod } from '../types/models.js';
 
 /**
@@ -44,12 +45,20 @@ export interface BasketItemDto {
 
 export interface BasketDto {
   id: number;
+  /**
+   * Short public reference (`PF-7K3M9Q`). Quoted when contacting support about
+   * a dispute (`C3-F5`). Safe to display: it cannot open the basket.
+   */
+  reference: string;
   farmId: number;
   farmName: string;
   /** Owner of the farm: the recipient of every producer-side notification. */
   farmOwnerId: number;
-  clientId: number;
+  /** `null` for a guest basket (`C1-F3`). */
+  clientId: number | null;
   clientName: string;
+  /** True when the basket was placed without an account. */
+  isGuest: boolean;
   paymentMethod: PaymentMethod;
   status: BasketStatus;
   /** Sum of the retained lines (`C3-F3`). */
@@ -62,8 +71,9 @@ export interface BasketDto {
 
 interface BasketRowJoined {
   id: number;
-  client_id: number;
-  client_name: string;
+  reference: string | null;
+  client_id: number | null;
+  client_name: string | null;
   farm_id: number;
   farm_name: string;
   farm_owner_id: number;
@@ -85,11 +95,11 @@ interface BasketItemRowJoined {
 }
 
 const BASKET_SELECT = `
-  SELECT b.id, b.client_id, u.name AS client_name, b.farm_id, f.name AS farm_name,
-         f.owner_id AS farm_owner_id, b.payment_method, b.status, b.total_amount,
-         b.created_at
+  SELECT b.id, b.reference, b.client_id, u.name AS client_name, b.farm_id,
+         f.name AS farm_name, f.owner_id AS farm_owner_id, b.payment_method,
+         b.status, b.total_amount, b.created_at
     FROM baskets b
-    JOIN users u ON u.id = b.client_id
+    LEFT JOIN users u ON u.id = b.client_id
     JOIN farms f ON f.id = b.farm_id
 `;
 
@@ -164,11 +174,14 @@ function toBasketDtos(db: Database.Database, rows: BasketRowJoined[]): BasketDto
 
   return rows.map((row) => ({
     id: row.id,
+    reference: row.reference ?? `#${row.id}`,
     farmId: row.farm_id,
     farmName: row.farm_name,
     farmOwnerId: row.farm_owner_id,
     clientId: row.client_id,
-    clientName: row.client_name,
+    // A guest has no account, so no name to show the producer.
+    clientName: row.client_name ?? 'Invité',
+    isGuest: row.client_id === null,
     paymentMethod: row.payment_method,
     status: row.status,
     totalAmount: row.total_amount,
@@ -235,7 +248,7 @@ export function findBasketForFarmer(
 // ---------------------------------------------------------------------------
 
 export type CreateBasketOutcome =
-  | { ok: true; basketId: number; ownerId: number }
+  | { ok: true; basketId: number; ownerId: number; reference: string; accessToken: string }
   /** The farm does not exist or is not `APPROVED` (`C3-F1`). */
   | { ok: false; reason: 'FARM_NOT_FOUND' }
   /** The chosen method is not enabled by this producer (`C2-F2`). */
@@ -257,10 +270,14 @@ export type CreateBasketOutcome =
  * Runs in a single transaction: the basket row, its items and the initial
  * total are written together or not at all, so a partially priced basket can
  * never be observed by the producer.
+ *
+ * `clientId` is `null` for a guest order (`C1-F3`). A guest has no account, so
+ * the returned `accessToken` is the only way back to the basket — the caller
+ * must hand it to the client.
  */
 export function createBasket(
   db: Database.Database,
-  clientId: number,
+  clientId: number | null,
   farmId: number,
   paymentMethod: PaymentMethod,
   lines: BasketLineInput[],
@@ -288,7 +305,8 @@ export function createBasket(
   }
 
   // Checked before touching any row, so the basket is never half-created.
-  if (farm.owner_id === clientId) {
+  // A guest has no identity, so the check cannot apply to them.
+  if (clientId !== null && farm.owner_id === clientId) {
     return { ok: false, reason: 'SELF_ORDER' };
   }
 
@@ -315,13 +333,16 @@ export function createBasket(
     }
   }
 
+  const reference = generateBasketReference();
+  const accessToken = generateAccessToken();
+
   const run = db.transaction((): number => {
     const basket = db
       .prepare(
-        `INSERT INTO baskets (client_id, farm_id, payment_method, status, total_amount)
-         VALUES (?, ?, ?, 'PENDING_FARMER', 0)`,
+        `INSERT INTO baskets (client_id, farm_id, payment_method, status, total_amount, reference, access_token)
+         VALUES (?, ?, ?, 'PENDING_FARMER', 0, ?, ?)`,
       )
-      .run(clientId, farmId, paymentMethod);
+      .run(clientId, farmId, paymentMethod, reference, accessToken);
 
     const basketId = Number(basket.lastInsertRowid);
 
@@ -339,7 +360,7 @@ export function createBasket(
     return basketId;
   });
 
-  return { ok: true, basketId: run(), ownerId: farm.owner_id };
+  return { ok: true, basketId: run(), ownerId: farm.owner_id, reference, accessToken };
 }
 
 // ---------------------------------------------------------------------------
@@ -452,6 +473,79 @@ export function respondToOffer(
 
   const status: BasketStatus = accept ? 'CONFIRMED' : 'REJECTED';
   db.prepare('UPDATE baskets SET status = ? WHERE id = ?').run(status, basketId);
+
+  return { ok: true, status };
+}
+
+// ---------------------------------------------------------------------------
+// Guest access (`C1-F3`)
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a basket from a public reference **and** the secret access token.
+ *
+ * Both are required: the reference is quoted to support and appears in the
+ * producer's order list, so it must never be sufficient on its own. Returning
+ * `undefined` for either a wrong token or an unknown reference keeps the two
+ * indistinguishable, so this cannot be used to probe which references exist.
+ */
+export function findBasketByGuestAccess(
+  db: Database.Database,
+  reference: string,
+  accessToken: string,
+): BasketDto | undefined {
+  const row = db
+    .prepare(`${BASKET_SELECT} WHERE b.reference = ? AND b.access_token = ?`)
+    .get(reference, accessToken) as BasketRowJoined | undefined;
+
+  return row ? toBasketDtos(db, [row])[0] : undefined;
+}
+
+/**
+ * Resolve a basket from its public reference alone — for support staff.
+ *
+ * Administrator-only at the route layer (`C3-F5`): the admin needs to identify
+ * the basket a client is calling about, which is exactly what the reference is
+ * for. It deliberately does **not** grant the ability to answer on the client's
+ * behalf.
+ */
+export function findBasketByReference(
+  db: Database.Database,
+  reference: string,
+): BasketDto | undefined {
+  const row = db
+    .prepare(`${BASKET_SELECT} WHERE b.reference = ?`)
+    .get(reference) as BasketRowJoined | undefined;
+
+  return row ? toBasketDtos(db, [row])[0] : undefined;
+}
+
+/**
+ * Accept or refuse an offer, authorised by the guest access token.
+ *
+ * Mirrors `respondToOffer` but identifies the basket by `(reference, token)`
+ * instead of `(id, client_id)`, since a guest has neither an id nor a session.
+ */
+export function respondToOfferAsGuest(
+  db: Database.Database,
+  reference: string,
+  accessToken: string,
+  accept: boolean,
+): RespondOutcome {
+  const owned = db
+    .prepare('SELECT id, status FROM baskets WHERE reference = ? AND access_token = ?')
+    .get(reference, accessToken) as { id: number; status: BasketStatus } | undefined;
+
+  if (!owned) {
+    return { ok: false, reason: 'NOT_FOUND' };
+  }
+
+  if (owned.status !== 'OFFER_PROPOSED') {
+    return { ok: false, reason: 'INVALID_TRANSITION' };
+  }
+
+  const status: BasketStatus = accept ? 'CONFIRMED' : 'REJECTED';
+  db.prepare('UPDATE baskets SET status = ? WHERE id = ?').run(status, owned.id);
 
   return { ok: true, status };
 }

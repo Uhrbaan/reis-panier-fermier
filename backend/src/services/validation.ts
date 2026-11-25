@@ -258,3 +258,14 @@ export function parseItemIds(raw: unknown): ValidationResult<number[]> {
 
   return ok(ids);
 }
+
+/**
+ * Read a single route parameter.
+ *
+ * Express types `req.params.x` as `string | string[] | undefined`: a repeated
+ * param arrives as an array. Anything that is not a single string is rejected
+ * here instead of being coerced into `"a,b"` downstream.
+ */
+export function routeParam(raw: unknown): string | undefined {
+  return typeof raw === 'string' ? raw : undefined;
+}
