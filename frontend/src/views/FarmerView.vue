@@ -98,7 +98,6 @@ onMounted(() => {
           {{ statusInfo.label }}
         </span>
         <button
-        <button
           v-if="isLoggedIn"
           type="button"
           class="rounded border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
