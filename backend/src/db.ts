@@ -31,6 +31,19 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL CHECK(role IN ('CLIENT', 'FARMER', 'ADMIN'))
 );
 
+-- Anonymous device identity (ADR-10).
+--
+-- A visitor who has not signed up still needs continuity: their baskets and
+-- notifications must follow them across page loads. The browser holds an
+-- opaque token in an HttpOnly cookie; only its SHA-256 digest is stored here,
+-- so a database leak does not hand out live sessions.
+CREATE TABLE IF NOT EXISTS guest_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  token_hash TEXT UNIQUE NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS farms (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   owner_id INTEGER NOT NULL REFERENCES users(id),
@@ -56,18 +69,17 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE TABLE IF NOT EXISTS baskets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  -- NULL for a guest basket: ordering does not require an account (C1-F3).
+  -- Exactly one of these identifies the buyer: a registered account, or the
+  -- anonymous device session that placed the order (ADR-10).
   client_id INTEGER REFERENCES users(id),
+  guest_session_id INTEGER REFERENCES guest_sessions(id),
   farm_id INTEGER NOT NULL REFERENCES farms(id),
   payment_method TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'PENDING_FARMER' CHECK(status IN ('PENDING_FARMER', 'OFFER_PROPOSED', 'CONFIRMED', 'REJECTED')),
   total_amount REAL NOT NULL DEFAULT 0,
   -- Short human reference quoted when contacting support about a dispute
-  -- (C3-F5). It is *not* a secret: it cannot open the basket on its own.
+  -- (C3-F5). Public by design: it identifies a basket but grants nothing.
   reference TEXT,
-  -- Secret capability held by a guest, carried in their access link. NULL for
-  -- baskets owned by a registered account, which are reached via client_id.
-  access_token TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -82,7 +94,9 @@ CREATE TABLE IF NOT EXISTS basket_items (
 
 CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL REFERENCES users(id),
+  -- Recipient: a registered account, or an anonymous device session (ADR-10).
+  user_id INTEGER REFERENCES users(id),
+  guest_session_id INTEGER REFERENCES guest_sessions(id),
   message TEXT NOT NULL,
   basket_id INTEGER REFERENCES baskets(id),
   is_read INTEGER NOT NULL DEFAULT 0,
@@ -134,11 +148,17 @@ export function initializeSchema(connection: Database.Database): void {
   ensureGuestIndexes(connection);
 }
 
-/** Unique indexes backing the guest lookup paths (`C1-F3`). */
+/**
+ * Unique indexes backing the guest lookup paths (`C1-F3`).
+ *
+ * Runs after the migrations: on a database created before guest baskets
+ * existed, these columns do not exist yet when `SCHEMA_SQL` executes.
+ */
 function ensureGuestIndexes(connection: Database.Database): void {
   connection.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_baskets_reference ON baskets(reference);
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_baskets_access_token ON baskets(access_token);
+    CREATE INDEX IF NOT EXISTS idx_baskets_guest_session ON baskets(guest_session_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_guest ON notifications(guest_session_id, is_read);
   `);
 }
 
@@ -167,82 +187,124 @@ function applyMigrations(connection: Database.Database): void {
   // are not served with an empty description.
   backfillDescriptionHtml(connection);
 
-  migrateBasketsForGuests(connection);
+  migrateBasketsForGuestSessions(connection);
+  migrateNotificationsForGuestSessions(connection);
 }
 
 /**
- * Relax `baskets.client_id` to nullable and add the guest columns.
+ * Rebuild a table inside a transaction with foreign keys temporarily disabled.
  *
  * `CREATE TABLE IF NOT EXISTS` cannot change an existing table, and SQLite has
- * no `ALTER TABLE ... ALTER COLUMN ... DROP NOT NULL`. The only portable way to
- * drop a NOT NULL constraint is to rebuild the table:
+ * no `ALTER TABLE ... ALTER COLUMN ... DROP NOT NULL`, so the only portable way
+ * to relax a constraint or drop a column is to rebuild:
  *
- *   1. `foreign_keys = OFF` — otherwise dropping `baskets` would cascade into
- *      `basket_items` and `notifications`;
- *   2. create the replacement, copy every row, drop the original, rename;
- *   3. `PRAGMA foreign_key_check` before committing, to prove the copy did not
- *      orphan anything;
+ *   1. `foreign_keys = OFF` — otherwise dropping the table would cascade into
+ *      its dependants;
+ *   2. create the replacement, copy the rows, drop the original, rename;
+ *   3. `PRAGMA foreign_key_check` afterwards, to prove nothing was orphaned;
  *   4. `foreign_keys = ON` again.
  *
- * SQLite cannot toggle that pragma inside a transaction, so the sequence is run
- * as a unit and verified afterwards instead. Guarded by a column check, so it
- * runs at most once per database.
+ * SQLite cannot toggle that pragma inside a transaction, hence the ordering.
  */
-function migrateBasketsForGuests(connection: Database.Database): void {
-  const columns = connection.prepare('PRAGMA table_info(baskets)').all() as Array<
-    TableColumn & { notnull: number }
-  >;
-
-  const clientId = columns.find((column) => column.name === 'client_id');
-  const hasReference = columns.some((column) => column.name === 'reference');
-  const hasAccessToken = columns.some((column) => column.name === 'access_token');
-
-  // Already migrated: nothing to relax and both guest columns are present.
-  if (clientId && clientId.notnull === 0 && hasReference && hasAccessToken) {
-    return;
-  }
-
+function rebuildTable(
+  connection: Database.Database,
+  statements: string[],
+): void {
   connection.pragma('foreign_keys = OFF');
 
   try {
-    connection.exec(`
-      BEGIN;
-
-      CREATE TABLE baskets_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_id INTEGER REFERENCES users(id),
-        farm_id INTEGER NOT NULL REFERENCES farms(id),
-        payment_method TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'PENDING_FARMER' CHECK(status IN ('PENDING_FARMER', 'OFFER_PROPOSED', 'CONFIRMED', 'REJECTED')),
-        total_amount REAL NOT NULL DEFAULT 0,
-        reference TEXT,
-        access_token TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      INSERT INTO baskets_new (id, client_id, farm_id, payment_method, status, total_amount, created_at)
-        SELECT id, client_id, farm_id, payment_method, status, total_amount, created_at FROM baskets;
-
-      DROP TABLE baskets;
-      ALTER TABLE baskets_new RENAME TO baskets;
-
-      CREATE INDEX IF NOT EXISTS idx_baskets_client_id ON baskets(client_id);
-      CREATE INDEX IF NOT EXISTS idx_baskets_farm_id ON baskets(farm_id);
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_baskets_reference ON baskets(reference);
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_baskets_access_token ON baskets(access_token);
-
-      COMMIT;
-    `);
+    connection.exec(`BEGIN;\n${statements.join('\n')}\nCOMMIT;`);
 
     const orphans = connection.prepare('PRAGMA foreign_key_check').all();
     if (orphans.length > 0) {
       throw new Error(
-        `baskets migration left ${orphans.length} orphaned row(s); refusing to continue`,
+        `migration left ${orphans.length} orphaned row(s); refusing to continue`,
       );
     }
   } finally {
     connection.pragma('foreign_keys = ON');
   }
+}
+
+/**
+ * Move baskets from the link-based guest model to the cookie-based one (ADR-10).
+ *
+ * Two changes at once, because both need the same rebuild: `guest_session_id`
+ * replaces `access_token`, and `client_id` must stay nullable. The access
+ * tokens are dropped deliberately: the guest link was removed in favour of the
+ * device cookie, so the values have no reader left.
+ */
+function migrateBasketsForGuestSessions(connection: Database.Database): void {
+  const columns = connection.prepare('PRAGMA table_info(baskets)').all() as Array<
+    TableColumn & { notnull: number }
+  >;
+
+  const clientId = columns.find((column) => column.name === 'client_id');
+  const hasGuestSession = columns.some((column) => column.name === 'guest_session_id');
+  const hasAccessToken = columns.some((column) => column.name === 'access_token');
+
+  if (clientId && clientId.notnull === 0 && hasGuestSession && !hasAccessToken) {
+    return;
+  }
+
+  rebuildTable(connection, [
+    `CREATE TABLE baskets_new (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       client_id INTEGER REFERENCES users(id),
+       guest_session_id INTEGER REFERENCES guest_sessions(id),
+       farm_id INTEGER NOT NULL REFERENCES farms(id),
+       payment_method TEXT NOT NULL,
+       status TEXT NOT NULL DEFAULT 'PENDING_FARMER' CHECK(status IN ('PENDING_FARMER', 'OFFER_PROPOSED', 'CONFIRMED', 'REJECTED')),
+       total_amount REAL NOT NULL DEFAULT 0,
+       reference TEXT,
+       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+     );`,
+    `INSERT INTO baskets_new (id, client_id, farm_id, payment_method, status, total_amount, reference, created_at)
+       SELECT id, client_id, farm_id, payment_method, status, total_amount, reference, created_at FROM baskets;`,
+    'DROP TABLE baskets;',
+    'ALTER TABLE baskets_new RENAME TO baskets;',
+    'CREATE INDEX IF NOT EXISTS idx_baskets_client_id ON baskets(client_id);',
+    'CREATE INDEX IF NOT EXISTS idx_baskets_farm_id ON baskets(farm_id);',
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_baskets_reference ON baskets(reference);',
+  ]);
+}
+
+/**
+ * Let notifications address an anonymous device session (ADR-10).
+ *
+ * `user_id` was `NOT NULL`, so a guest had nobody to notify and the bell was
+ * useless to exactly the visitors we just made first-class. Dropping the
+ * constraint again requires a rebuild.
+ */
+function migrateNotificationsForGuestSessions(connection: Database.Database): void {
+  const columns = connection.prepare('PRAGMA table_info(notifications)').all() as Array<
+    TableColumn & { notnull: number }
+  >;
+
+  const userId = columns.find((column) => column.name === 'user_id');
+  const hasGuestSession = columns.some((column) => column.name === 'guest_session_id');
+
+  if (userId && userId.notnull === 0 && hasGuestSession) {
+    return;
+  }
+
+  rebuildTable(connection, [
+    `CREATE TABLE notifications_new (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       user_id INTEGER REFERENCES users(id),
+       guest_session_id INTEGER REFERENCES guest_sessions(id),
+       message TEXT NOT NULL,
+       basket_id INTEGER REFERENCES baskets(id),
+       is_read INTEGER NOT NULL DEFAULT 0,
+       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+     );`,
+    `INSERT INTO notifications_new (id, user_id, message, basket_id, is_read, created_at)
+       SELECT id, user_id, message, basket_id, is_read, created_at FROM notifications;`,
+    'DROP TABLE notifications;',
+    'ALTER TABLE notifications_new RENAME TO notifications;',
+    'CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read);',
+    'CREATE INDEX IF NOT EXISTS idx_notifications_basket_id ON notifications(basket_id);',
+  ]);
 }
 
 /**

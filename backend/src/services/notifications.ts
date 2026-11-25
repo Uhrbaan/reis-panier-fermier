@@ -16,13 +16,19 @@ export interface NotificationChannel {
   deliver(db: Database.Database, notification: PendingNotification): void;
 }
 
-export interface PendingNotification {
-  /** Recipient. */
-  userId: number;
+/**
+ * A recipient is either a registered account or an anonymous device session
+ * (ADR-10). Exactly one of the two is set.
+ */
+export type NotificationRecipient =
+  | { userId: number; guestSessionId?: never }
+  | { guestSessionId: number; userId?: never };
+
+export type PendingNotification = NotificationRecipient & {
   message: string;
   /** Basket the notification is about, when applicable. */
   basketId: number | null;
-}
+};
 
 /**
  * Internal bell: persists the notification so the recipient can read it later.
@@ -36,11 +42,14 @@ export class InAppChannel implements NotificationChannel {
   readonly name = 'in-app';
 
   deliver(db: Database.Database, notification: PendingNotification): void {
-    db.prepare('INSERT INTO notifications (user_id, message, basket_id) VALUES (?, ?, ?)').run(
-      notification.userId,
-      notification.message,
-      notification.basketId,
-    );
+    const userId = 'userId' in notification ? notification.userId : null;
+    const guestSessionId =
+      'guestSessionId' in notification ? notification.guestSessionId : null;
+
+    db.prepare(
+      `INSERT INTO notifications (user_id, guest_session_id, message, basket_id)
+         VALUES (?, ?, ?, ?)`,
+    ).run(userId, guestSessionId, notification.message, notification.basketId);
   }
 }
 
@@ -84,25 +93,50 @@ function toNotificationDto(row: NotificationRow): NotificationDto {
   };
 }
 
-/** Notifications of the connected user, newest first. */
-export function listNotifications(db: Database.Database, userId: number): NotificationDto[] {
+/**
+ * SQL predicate + parameters selecting one recipient's notifications.
+ *
+ * Shared by the three read paths so an account and an anonymous device session
+ * are handled by exactly the same code, and cannot drift apart.
+ */
+function recipientFilter(recipient: NotificationRecipient): {
+  clause: string;
+  params: [number];
+} {
+  return 'userId' in recipient
+    ? { clause: 'user_id = ?', params: [recipient.userId] }
+    : { clause: 'guest_session_id = ?', params: [recipient.guestSessionId] };
+}
+
+/** Notifications of the recipient, newest first. */
+export function listNotifications(
+  db: Database.Database,
+  recipient: NotificationRecipient,
+): NotificationDto[] {
+  const { clause, params } = recipientFilter(recipient);
+
   const rows = db
     .prepare(
       `SELECT id, user_id, message, basket_id, is_read, created_at
          FROM notifications
-        WHERE user_id = ?
+        WHERE ${clause}
         ORDER BY created_at DESC, id DESC`,
     )
-    .all(userId) as NotificationRow[];
+    .all(...params) as NotificationRow[];
 
   return rows.map(toNotificationDto);
 }
 
 /** Number of unread notifications, for the bell badge. */
-export function countUnreadNotifications(db: Database.Database, userId: number): number {
+export function countUnreadNotifications(
+  db: Database.Database,
+  recipient: NotificationRecipient,
+): number {
+  const { clause, params } = recipientFilter(recipient);
+
   const row = db
-    .prepare('SELECT COUNT(*) AS count FROM notifications WHERE user_id = ? AND is_read = 0')
-    .get(userId) as { count: number };
+    .prepare(`SELECT COUNT(*) AS count FROM notifications WHERE ${clause} AND is_read = 0`)
+    .get(...params) as { count: number };
 
   return row.count;
 }
@@ -110,17 +144,19 @@ export function countUnreadNotifications(db: Database.Database, userId: number):
 /**
  * Mark one notification as read.
  *
- * Scoped by `user_id` so a user cannot flip another user's notification; a
+ * Scoped by the recipient so nobody can flip someone else's notification; a
  * foreign id simply matches no row.
  */
 export function markNotificationRead(
   db: Database.Database,
-  userId: number,
+  recipient: NotificationRecipient,
   notificationId: number,
 ): boolean {
+  const { clause, params } = recipientFilter(recipient);
+
   const result = db
-    .prepare('UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?')
-    .run(notificationId, userId);
+    .prepare(`UPDATE notifications SET is_read = 1 WHERE id = ? AND ${clause}`)
+    .run(notificationId, ...params);
 
   return result.changes > 0;
 }

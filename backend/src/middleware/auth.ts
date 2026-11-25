@@ -74,3 +74,30 @@ export function asyncHandler(handler: AsyncRequestHandler): RequestHandler {
     void Promise.resolve(handler(req, res, next)).catch(next);
   };
 }
+
+/**
+ * Attach `req.user` when a valid token is present, but never reject.
+ *
+ * Used where authentication is optional: an anonymous visitor is a legitimate
+ * caller, not an error (`ADR-10`). Any failure to verify the token — malformed,
+ * expired, account deleted — degrades to "no user" rather than a `401`, so a
+ * stale token can never lock someone out of their own basket.
+ */
+export const optionalAuth: RequestHandler = (req: Request, _res: Response, next: NextFunction): void => {
+  const token = extractBearerToken(req.headers.authorization);
+  if (!token) {
+    next();
+    return;
+  }
+
+  try {
+    const user = findUserById(db, verifyToken(token).id);
+    if (user) {
+      req.user = toPublicUser(user);
+    }
+  } catch {
+    // Ignored on purpose: see the doc comment above.
+  }
+
+  next();
+};

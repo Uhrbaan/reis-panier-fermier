@@ -411,13 +411,20 @@ farmerRouter.patch('/baskets/:id/adjust', (req: Request, res: Response) => {
   const basket = findBasketForFarmer(db, req.user!.id, basketId);
 
   // The client is told the offer is ready — or that nothing is left (`C3-F2`).
-  // A guest has no bell to notify: they follow their access link instead, which
-  // is precisely the trade-off of ordering without an account.
-  if (basket && basket.clientId !== null) {
+  // The recipient is the account when there is one, otherwise the anonymous
+  // device session that placed the order (ADR-10): a guest has a bell too.
+  if (basket) {
     const reference = basket.reference;
-    db.transaction(() => {
+    const recipient =
+      basket.clientId !== null
+        ? { userId: basket.clientId }
+        : basket.guestSessionId !== null
+          ? { guestSessionId: basket.guestSessionId }
+          : null;
+
+    if (recipient) db.transaction(() => {
       notificationService.notify(db, {
-        userId: basket.clientId as number,
+        ...recipient,
         message:
           outcome.status === 'OFFER_PROPOSED'
             ? `${basket.farmName} adjusted your basket ${reference}: ${outcome.totalAmount.toFixed(2)} CHF. Accept or refuse it.`

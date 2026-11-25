@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 
 import { computeClientTotal, computeSubtotal, roundMoney } from '../services/pricing.js';
-import { generateAccessToken, generateBasketReference } from '../services/references.js';
+import { generateBasketReference } from '../services/references.js';
 import type { BasketStatus, PaymentMethod } from '../types/models.js';
 
 /**
@@ -56,6 +56,8 @@ export interface BasketDto {
   farmOwnerId: number;
   /** `null` for a guest basket (`C1-F3`). */
   clientId: number | null;
+  /** Anonymous device session that placed it, when there is no account (ADR-10). */
+  guestSessionId: number | null;
   clientName: string;
   /** True when the basket was placed without an account. */
   isGuest: boolean;
@@ -73,6 +75,7 @@ interface BasketRowJoined {
   id: number;
   reference: string | null;
   client_id: number | null;
+  guest_session_id: number | null;
   client_name: string | null;
   farm_id: number;
   farm_name: string;
@@ -95,7 +98,7 @@ interface BasketItemRowJoined {
 }
 
 const BASKET_SELECT = `
-  SELECT b.id, b.reference, b.client_id, u.name AS client_name, b.farm_id,
+  SELECT b.id, b.reference, b.client_id, b.guest_session_id, u.name AS client_name, b.farm_id,
          f.name AS farm_name, f.owner_id AS farm_owner_id, b.payment_method,
          b.status, b.total_amount, b.created_at
     FROM baskets b
@@ -179,6 +182,7 @@ function toBasketDtos(db: Database.Database, rows: BasketRowJoined[]): BasketDto
     farmName: row.farm_name,
     farmOwnerId: row.farm_owner_id,
     clientId: row.client_id,
+    guestSessionId: row.guest_session_id,
     // A guest has no account, so no name to show the producer.
     clientName: row.client_name ?? 'Invité',
     isGuest: row.client_id === null,
@@ -248,7 +252,7 @@ export function findBasketForFarmer(
 // ---------------------------------------------------------------------------
 
 export type CreateBasketOutcome =
-  | { ok: true; basketId: number; ownerId: number; reference: string; accessToken: string }
+  | { ok: true; basketId: number; ownerId: number; reference: string }
   /** The farm does not exist or is not `APPROVED` (`C3-F1`). */
   | { ok: false; reason: 'FARM_NOT_FOUND' }
   /** The chosen method is not enabled by this producer (`C2-F2`). */
@@ -278,6 +282,7 @@ export type CreateBasketOutcome =
 export function createBasket(
   db: Database.Database,
   clientId: number | null,
+  guestSessionId: number | null,
   farmId: number,
   paymentMethod: PaymentMethod,
   lines: BasketLineInput[],
@@ -334,15 +339,14 @@ export function createBasket(
   }
 
   const reference = generateBasketReference();
-  const accessToken = generateAccessToken();
 
   const run = db.transaction((): number => {
     const basket = db
       .prepare(
-        `INSERT INTO baskets (client_id, farm_id, payment_method, status, total_amount, reference, access_token)
-         VALUES (?, ?, ?, 'PENDING_FARMER', 0, ?, ?)`,
+        `INSERT INTO baskets (client_id, guest_session_id, farm_id, payment_method, status, total_amount, reference)
+         VALUES (?, ?, ?, ?, 'PENDING_FARMER', 0, ?)`,
       )
-      .run(clientId, farmId, paymentMethod, reference, accessToken);
+      .run(clientId, guestSessionId, farmId, paymentMethod, reference);
 
     const basketId = Number(basket.lastInsertRowid);
 
@@ -360,7 +364,7 @@ export function createBasket(
     return basketId;
   });
 
-  return { ok: true, basketId: run(), ownerId: farm.owner_id, reference, accessToken };
+  return { ok: true, basketId: run(), ownerId: farm.owner_id, reference };
 }
 
 // ---------------------------------------------------------------------------
@@ -478,33 +482,13 @@ export function respondToOffer(
 }
 
 // ---------------------------------------------------------------------------
-// Guest access (`C1-F3`)
+// Anonymous device sessions (ADR-10)
 // ---------------------------------------------------------------------------
-
-/**
- * Resolve a basket from a public reference **and** the secret access token.
- *
- * Both are required: the reference is quoted to support and appears in the
- * producer's order list, so it must never be sufficient on its own. Returning
- * `undefined` for either a wrong token or an unknown reference keeps the two
- * indistinguishable, so this cannot be used to probe which references exist.
- */
-export function findBasketByGuestAccess(
-  db: Database.Database,
-  reference: string,
-  accessToken: string,
-): BasketDto | undefined {
-  const row = db
-    .prepare(`${BASKET_SELECT} WHERE b.reference = ? AND b.access_token = ?`)
-    .get(reference, accessToken) as BasketRowJoined | undefined;
-
-  return row ? toBasketDtos(db, [row])[0] : undefined;
-}
 
 /**
  * Resolve a basket from its public reference alone — for support staff.
  *
- * Administrator-only at the route layer (`C3-F5`): the admin needs to identify
+ * Administrator-only at the route layer (C3-F5): the admin needs to identify
  * the basket a client is calling about, which is exactly what the reference is
  * for. It deliberately does **not** grant the ability to answer on the client's
  * behalf.
@@ -520,21 +504,46 @@ export function findBasketByReference(
   return row ? toBasketDtos(db, [row])[0] : undefined;
 }
 
-/**
- * Accept or refuse an offer, authorised by the guest access token.
- *
- * Mirrors `respondToOffer` but identifies the basket by `(reference, token)`
- * instead of `(id, client_id)`, since a guest has neither an id nor a session.
- */
-export function respondToOfferAsGuest(
+/** Baskets placed from this anonymous device session, newest first. */
+export function listBasketsByGuestSession(
   db: Database.Database,
-  reference: string,
-  accessToken: string,
+  guestSessionId: number,
+): BasketDto[] {
+  const rows = db
+    .prepare(`${BASKET_SELECT} WHERE b.guest_session_id = ? ORDER BY b.created_at DESC, b.id DESC`)
+    .all(guestSessionId) as BasketRowJoined[];
+
+  return toBasketDtos(db, rows);
+}
+
+/** A single basket, only if it was placed from this device session. */
+export function findBasketForGuestSession(
+  db: Database.Database,
+  guestSessionId: number,
+  basketId: number,
+): BasketDto | undefined {
+  const row = db
+    .prepare(`${BASKET_SELECT} WHERE b.id = ? AND b.guest_session_id = ?`)
+    .get(basketId, guestSessionId) as BasketRowJoined | undefined;
+
+  return row ? toBasketDtos(db, [row])[0] : undefined;
+}
+
+/**
+ * Accept or refuse an offer, authorised by the device session.
+ *
+ * Mirrors `respondToOffer` but identifies the basket by the anonymous session
+ * instead of a user id, since a guest has no account.
+ */
+export function respondToOfferAsGuestSession(
+  db: Database.Database,
+  guestSessionId: number,
+  basketId: number,
   accept: boolean,
 ): RespondOutcome {
   const owned = db
-    .prepare('SELECT id, status FROM baskets WHERE reference = ? AND access_token = ?')
-    .get(reference, accessToken) as { id: number; status: BasketStatus } | undefined;
+    .prepare('SELECT id, status FROM baskets WHERE id = ? AND guest_session_id = ?')
+    .get(basketId, guestSessionId) as { id: number; status: BasketStatus } | undefined;
 
   if (!owned) {
     return { ok: false, reason: 'NOT_FOUND' };
