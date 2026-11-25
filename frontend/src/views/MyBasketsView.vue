@@ -4,7 +4,7 @@
 // The client only ever sees their own baskets: the server scopes the query by
 // `client_id`, so this view never has to filter anything itself.
 
-import { computed, onMounted, ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   basketStatusLabel,
@@ -13,7 +13,6 @@ import {
   respondToBasket,
   type Basket,
 } from "../api";
-import { isAuthenticated } from "../auth";
 
 const router = useRouter();
 
@@ -24,10 +23,8 @@ const loadError = ref<string | null>(null);
 const busyId = ref<number | null>(null);
 const actionError = ref<string | null>(null);
 
-// Buying is not a role: any signed-in user sees their own baskets, including
-// producers and administrators.
-const canUseView = computed(() => isAuthenticated.value);
-
+// No login required: the guest session cookie identifies the device (ADR-10),
+// so an anonymous visitor sees the baskets they placed here.
 async function loadBaskets() {
   loading.value = true;
   loadError.value = null;
@@ -42,7 +39,7 @@ async function loadBaskets() {
 }
 
 onMounted(() => {
-  if (canUseView.value) void loadBaskets();
+  void loadBaskets();
 });
 
 async function respond(basket: Basket, accept: boolean) {
@@ -89,25 +86,14 @@ const statusClasses: Record<string, string> = {
       ou refuser.
     </p>
 
-    <!-- Pas connecté / mauvais rôle -->
-    <div
-      v-if="!canUseView"
-      class="rounded border border-gray-300 bg-gray-50 p-4 text-sm text-gray-700"
-    >
-      <p v-if="!isAuthenticated">Connectez-vous pour voir vos paniers.</p>
-      <p v-else>
-        Vos paniers apparaîtront ici.
-      </p>
-    </div>
-
-    <div v-else-if="loading" class="p-8 text-center text-gray-600">Chargement…</div>
+    <div v-if="loading" class="p-8 text-center text-gray-600">Chargement…</div>
 
     <div v-else-if="loadError" class="rounded border border-red-300 bg-red-50 p-4 text-sm text-red-800">
       {{ loadError }}
     </div>
 
     <div v-else-if="baskets.length === 0" class="rounded border border-gray-300 bg-gray-50 p-6 text-center text-gray-700">
-      <p class="font-semibold">Aucun panier pour le moment.</p>
+      <p class="font-semibold">Aucun panier sur cet appareil.</p>
       <button type="button" class="mt-2 text-green-700 underline" @click="router.push('/')">
         Explorer la carte pour composer un panier
       </button>

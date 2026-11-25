@@ -50,8 +50,20 @@ export function paymentMethodLabel(method: PaymentMethod): string {
 
 const API_BASE = "/api";
 
+/**
+ * `fetch` for our own API.
+ *
+ * `credentials: "include"` is required for the guest session cookie (ADR-10):
+ * without it the browser drops the cookie and every anonymous visitor would
+ * look like a brand new device on each call. Centralised here so a new endpoint
+ * cannot forget it.
+ */
+function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${API_BASE}${path}`, { credentials: "include", ...init });
+}
+
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await apiFetch(`${path}`, {
     headers: { Accept: "application/json" },
   });
 
@@ -88,7 +100,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 /** Récupère la ferme du producteur connecté, ou `null` s'il n'en a pas encore créé (404). */
 export async function fetchMyFarm(): Promise<Farm | null> {
-  const response = await fetch(`${API_BASE}/farmer/farm`, {
+  const response = await apiFetch(`/farmer/farm`, {
     headers: { Accept: "application/json", ...authHeaders() },
   });
 
@@ -124,7 +136,7 @@ export async function saveMyFarm(
 
   // Important : ne PAS mettre "Content-Type" à la main avec FormData,
   // le navigateur ajoute automatiquement "multipart/form-data; boundary=...".
-  const response = await fetch(`${API_BASE}/farmer/farm`, {
+  const response = await apiFetch(`/farmer/farm`, {
     method: isEditing ? "PUT" : "POST",
     headers: { Accept: "application/json", ...authHeaders() },
     body: formData,
@@ -142,7 +154,7 @@ export interface ProductInput {
 
 /** Ajoute un produit sans stock au catalogue (`C2-F3`). */
 export async function createProduct(input: ProductInput): Promise<Product> {
-  const response = await fetch(`${API_BASE}/farmer/products`, {
+  const response = await apiFetch(`/farmer/products`, {
     method: "POST",
     headers: {
       // Spread the auth header first: it must never override Content-Type.
@@ -162,7 +174,7 @@ export async function updateProduct(
   productId: number,
   input: ProductInput
 ): Promise<Product> {
-  const response = await fetch(`${API_BASE}/farmer/products/${productId}`, {
+  const response = await apiFetch(`/farmer/products/${productId}`, {
     method: "PUT",
     headers: {
       // Spread the auth header first: it must never override Content-Type.
@@ -179,7 +191,7 @@ export async function updateProduct(
 
 /** Supprime un produit du catalogue (`C2-F3`). */
 export async function deleteProduct(productId: number): Promise<void> {
-  const response = await fetch(`${API_BASE}/farmer/products/${productId}`, {
+  const response = await apiFetch(`/farmer/products/${productId}`, {
     method: "DELETE",
     headers: { Accept: "application/json", ...authHeaders() },
   });
@@ -200,7 +212,7 @@ export interface AuthResponse {
 
 /** Connexion ; renvoie le jeton et le profil (`POST /api/auth/login`). */
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE}/auth/login`, {
+  const response = await apiFetch(`/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ email, password }),
@@ -218,7 +230,7 @@ export interface RegisterInput {
 
 /** Inscription ; ouvre directement une session (`POST /api/auth/register`). */
 export async function register(input: RegisterInput): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE}/auth/register`, {
+  const response = await apiFetch(`/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(input),
@@ -229,7 +241,7 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
 
 /** Profil de l'utilisateur connecté (`GET /api/auth/me`). */
 export async function fetchMe(): Promise<SessionUser> {
-  const response = await fetch(`${API_BASE}/auth/me`, {
+  const response = await apiFetch(`/auth/me`, {
     headers: { Accept: "application/json", ...authHeaders() },
   });
 
@@ -243,7 +255,7 @@ export async function fetchMe(): Promise<SessionUser> {
 
 /** Fermes en attente de validation, de la plus ancienne à la plus récente. */
 export async function fetchPendingFarms(): Promise<Farm[]> {
-  const response = await fetch(`${API_BASE}/admin/farms/pending`, {
+  const response = await apiFetch(`/admin/farms/pending`, {
     headers: { Accept: "application/json", ...authHeaders() },
   });
 
@@ -256,7 +268,7 @@ export async function setFarmStatus(
   farmId: number,
   status: "APPROVED" | "REJECTED"
 ): Promise<void> {
-  const response = await fetch(`${API_BASE}/admin/farms/${farmId}/status`, {
+  const response = await apiFetch(`/admin/farms/${farmId}/status`, {
     method: "PATCH",
     headers: {
       ...authHeaders(),
@@ -317,13 +329,12 @@ export interface Basket {
 /**
  * Result of placing a basket.
  *
- * A guest has no account to come back to, so `accessToken` is issued exactly
- * once, here. It is the only way back to the basket and must be kept.
+ * No credential is returned: an anonymous visitor is identified by the guest
+ * session cookie the server sets (ADR-10), so there is nothing to copy or keep.
  */
 export interface BasketCreation {
   basket: Basket;
   reference: string;
-  accessToken?: string;
 }
 
 /** French labels for the basket lifecycle. */
@@ -355,7 +366,7 @@ export async function createBasket(
   paymentMethod: PaymentMethod,
   lines: BasketLineInput[]
 ): Promise<BasketCreation> {
-  const response = await fetch(`${API_BASE}/client/baskets`, {
+  const response = await apiFetch(`/client/baskets`, {
     method: "POST",
     headers: {
       ...authHeaders(),
@@ -368,46 +379,9 @@ export async function createBasket(
   return handleResponse<BasketCreation>(response);
 }
 
-/** Read a guest basket from its reference plus the secret access token (`C1-F4`). */
-export async function fetchGuestBasket(
-  reference: string,
-  accessToken: string
-): Promise<Basket> {
-  const response = await fetch(
-    `${API_BASE}/client/baskets/${encodeURIComponent(reference)}?token=${encodeURIComponent(accessToken)}`,
-    { headers: { Accept: "application/json" } }
-  );
-
-  const data = await handleResponse<{ basket: Basket }>(response);
-  return data.basket;
-}
-
-/** Accept or refuse an offer on a guest basket (`C1-F4`). */
-export async function respondToGuestBasket(
-  reference: string,
-  accessToken: string,
-  accept: boolean
-): Promise<Basket> {
-  const response = await fetch(
-    `${API_BASE}/client/baskets/${encodeURIComponent(reference)}/respond`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-Basket-Token": accessToken,
-      },
-      body: JSON.stringify({ accept }),
-    }
-  );
-
-  const data = await handleResponse<{ basket: Basket }>(response);
-  return data.basket;
-}
-
 /** Baskets placed by the connected client (`C1-F4`). */
 export async function fetchMyBaskets(): Promise<Basket[]> {
-  const response = await fetch(`${API_BASE}/client/baskets`, {
+  const response = await apiFetch(`/client/baskets`, {
     headers: { Accept: "application/json", ...authHeaders() },
   });
 
@@ -417,7 +391,7 @@ export async function fetchMyBaskets(): Promise<Basket[]> {
 
 /** Accept or refuse the producer's adjusted offer (`C1-F4`). */
 export async function respondToBasket(basketId: number, accept: boolean): Promise<Basket> {
-  const response = await fetch(`${API_BASE}/client/baskets/${basketId}/respond`, {
+  const response = await apiFetch(`/client/baskets/${basketId}/respond`, {
     method: "PATCH",
     headers: {
       ...authHeaders(),
@@ -433,7 +407,7 @@ export async function respondToBasket(basketId: number, accept: boolean): Promis
 
 /** Baskets received by the connected producer's farm (`C2-F5`). */
 export async function fetchReceivedBaskets(): Promise<Basket[]> {
-  const response = await fetch(`${API_BASE}/farmer/baskets`, {
+  const response = await apiFetch(`/farmer/baskets`, {
     headers: { Accept: "application/json", ...authHeaders() },
   });
 
@@ -446,7 +420,7 @@ export async function adjustBasket(
   basketId: number,
   removedItemIds: number[]
 ): Promise<Basket> {
-  const response = await fetch(`${API_BASE}/farmer/baskets/${basketId}/adjust`, {
+  const response = await apiFetch(`/farmer/baskets/${basketId}/adjust`, {
     method: "PATCH",
     headers: {
       ...authHeaders(),
@@ -484,7 +458,7 @@ export interface DemoAccount {
  */
 export async function fetchDemoAccounts(): Promise<DemoAccount[]> {
   try {
-    const response = await fetch(`${API_BASE}/demo/accounts`, {
+    const response = await apiFetch(`/demo/accounts`, {
       headers: { Accept: "application/json" },
     });
 
@@ -496,4 +470,47 @@ export async function fetchDemoAccounts(): Promise<DemoAccount[]> {
     // The dev panel is a convenience: a missing backend must not break the form.
     return [];
   }
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (`C3-F2`)
+// ---------------------------------------------------------------------------
+
+export interface Notification {
+  id: number;
+  message: string;
+  basketId: number | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationList {
+  notifications: Notification[];
+  unreadCount: number;
+}
+
+/**
+ * The caller's notifications.
+ *
+ * Works signed in **or** anonymous: the server resolves the recipient from the
+ * JWT or from the guest session cookie (`ADR-10`), so a visitor who never
+ * registered still has a working bell.
+ */
+export async function fetchNotifications(): Promise<NotificationList> {
+  const response = await apiFetch(`/notifications`, {
+    headers: { Accept: "application/json" },
+  });
+
+  return handleResponse<NotificationList>(response);
+}
+
+/** Mark one notification as read. */
+export async function markNotificationRead(id: number): Promise<number> {
+  const response = await apiFetch(`/notifications/${id}/read`, {
+    method: "PATCH",
+    headers: { Accept: "application/json" },
+  });
+
+  const data = await handleResponse<{ unreadCount: number }>(response);
+  return data.unreadCount;
 }

@@ -62,32 +62,14 @@ const subtotal = computed(() =>
   basketLines.value.reduce((sum, line) => sum + line.lineTotal, 0)
 );
 
-/** Filled after a successful order so the client can note the reference down. */
-const placed = ref<{ reference: string; accessToken?: string } | null>(null);
-
-/** Access link for a guest basket, so they can come back to accept an offer. */
-const guestLink = computed(() => {
-  if (!placed.value?.accessToken) return "";
-  const query = new URLSearchParams({
-    reference: placed.value.reference,
-    token: placed.value.accessToken,
-  });
-  return `${window.location.origin}/panier?${query.toString()}`;
-});
-
-/** Transient feedback for the copy button. */
-const linkCopied = ref(false);
-
-async function copyGuestLink() {
-  try {
-    await navigator.clipboard.writeText(guestLink.value);
-    linkCopied.value = true;
-    window.setTimeout(() => (linkCopied.value = false), 2000);
-  } catch {
-    // Clipboard access can be denied; the link stays visible to copy by hand.
-    linkCopied.value = false;
-  }
-}
+/**
+ * Reference of the basket just placed.
+ *
+ * No link or token is handed out any more: the guest session cookie keeps the
+ * device attached to the order (ADR-10), so the reference is only the number to
+ * quote if something goes wrong.
+ */
+const placed = ref<{ reference: string } | null>(null);
 
 async function submitOrder() {
   if (!farm.value || basketLines.value.length === 0 || !selectedPayment.value) return;
@@ -101,7 +83,7 @@ async function submitOrder() {
       selectedPayment.value,
       basketLines.value.map((l) => ({ productId: l.product.id, quantity: l.quantity }))
     );
-    placed.value = { reference: result.reference, accessToken: result.accessToken };
+    placed.value = { reference: result.reference };
     orderSubmitted.value = true;
   } catch (error) {
     submitError.value =
@@ -248,7 +230,7 @@ async function submitOrder() {
           articles et vous transmettre son offre finale.
         </p>
 
-        <!-- La référence sert de numéro de dossier en cas de litige. -->
+        <!-- La référence sert de numéro de dossier en cas de litige (C3-F5). -->
         <p v-if="placed" class="mt-3">
           Votre référence de panier :
           <strong class="rounded bg-white px-2 py-0.5 font-mono text-base">
@@ -260,36 +242,14 @@ async function submitOrder() {
           commande.
         </p>
 
-        <!-- Panier invité : le lien est le seul moyen de revenir sur la demande. -->
-        <div v-if="guestLink" class="mt-3 rounded border border-green-300 bg-white p-3">
-          <p class="font-semibold">Conservez ce lien</p>
-          <p class="mt-1 text-xs text-gray-600">
-            Vous n'avez pas de compte : ce lien est le seul moyen de consulter l'offre du producteur
-            et de l'accepter.
-          </p>
-          <a
-            :href="guestLink"
-            class="mt-2 block break-all text-xs font-medium text-green-800 underline"
-          >
-            {{ guestLink }}
-          </a>
-          <button
-            type="button"
-            class="mt-2 rounded border border-green-700 px-3 py-1 text-xs font-semibold text-green-800 hover:bg-green-100"
-            @click="copyGuestLink"
-          >
-            {{ linkCopied ? "Lien copié ✓" : "Copier le lien" }}
-          </button>
-          <p class="mt-3 border-t border-gray-200 pt-2 text-xs text-gray-600">
-            Créez un compte pour retrouver vos paniers et être prévenu des offres sans avoir à
-            conserver ce lien.
-          </p>
-        </div>
+        <p class="mt-3 text-xs text-green-800">
+          Votre panier est rattaché à cet appareil : retrouvez-le dans « Mes paniers » sans créer de
+          compte. Un compte n'est utile que pour être prévenu par e-mail.
+        </p>
 
         <button
-          v-else
           type="button"
-          class="mt-2 block text-sm font-semibold text-green-800 underline"
+          class="mt-3 block text-sm font-semibold text-green-800 underline"
           @click="router.push('/mes-paniers')"
         >
           Suivre mes paniers
