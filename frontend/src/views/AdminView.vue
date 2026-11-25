@@ -102,8 +102,8 @@ onMounted(load);
       v-else-if="!isAdmin"
       class="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
     >
-      Ce compte n'a pas le rôle <strong>ADMIN</strong>. Connecte-toi avec le compte
-      administrateur de démonstration (<code>sophie@example.ch</code>) ou consulte
+      Ce compte n'a pas le rôle <strong>ADMIN</strong>. Utilise le compte administrateur de
+      démonstration depuis le panneau « Comptes de démo » du formulaire de connexion, ou consulte
       l'espace client / producteur.
     </div>
 

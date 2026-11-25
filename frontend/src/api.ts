@@ -400,3 +400,41 @@ export async function adjustBasket(
   const data = await handleResponse<{ basket: Basket }>(response);
   return data.basket;
 }
+
+// ---------------------------------------------------------------------------
+// Demo shortcuts (development only)
+// ---------------------------------------------------------------------------
+
+export interface DemoAccount {
+  role: "CLIENT" | "FARMER" | "ADMIN";
+  name: string;
+  email: string;
+  password: string;
+  hint: string;
+}
+
+/**
+ * Seeded accounts for one-click sign-in while testing.
+ *
+ * Fetched from the server rather than embedded here on purpose: a `const` in
+ * this file would be bundled into the public production JavaScript. The
+ * endpoint only exists when `NODE_ENV` is not `production` (see
+ * `backend/src/routes/demo.ts`), so a production build simply gets a 404.
+ *
+ * @returns an empty array when the endpoint is unavailable.
+ */
+export async function fetchDemoAccounts(): Promise<DemoAccount[]> {
+  try {
+    const response = await fetch(`${API_BASE}/demo/accounts`, {
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) return [];
+
+    const data = (await response.json()) as { accounts?: DemoAccount[] };
+    return data.accounts ?? [];
+  } catch {
+    // The dev panel is a convenience: a missing backend must not break the form.
+    return [];
+  }
+}

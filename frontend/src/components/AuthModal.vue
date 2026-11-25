@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
-import { login, register } from "../api";
+import { computed, onMounted, reactive, ref } from "vue";
+import { fetchDemoAccounts, login, register, type DemoAccount } from "../api";
 import { setSession, type SessionUser } from "../auth";
 
 /**
@@ -33,6 +33,46 @@ const form = reactive({
 
 const pending = ref(false);
 const errorMsg = ref<string | null>(null);
+
+/**
+ * Seeded accounts for one-click sign-in (`GET /api/demo/accounts`).
+ *
+ * Empty outside development, because the endpoint does not exist there — the
+ * panel below then renders nothing at all. The credentials are never hardcoded
+ * in this file: doing so would ship them inside the public production bundle.
+ */
+const demoAccounts = ref<DemoAccount[]>([]);
+const demoOpen = ref(true);
+const demoPendingEmail = ref<string | null>(null);
+
+onMounted(async () => {
+  demoAccounts.value = await fetchDemoAccounts();
+});
+
+/** Fill the form and sign in immediately, so a demo is a single click. */
+async function loginAs(account: DemoAccount) {
+  errorMsg.value = null;
+  demoPendingEmail.value = account.email;
+  pending.value = true;
+
+  try {
+    const session = await login(account.email, account.password);
+    setSession(session.token, session.user);
+    form.password = "";
+    emit("authenticated", session.user);
+  } catch (err) {
+    errorMsg.value = err instanceof Error ? err.message : "Authentification impossible.";
+  } finally {
+    pending.value = false;
+    demoPendingEmail.value = null;
+  }
+}
+
+const roleLabels: Record<DemoAccount["role"], string> = {
+  ADMIN: "Admin",
+  CLIENT: "Client",
+  FARMER: "Producteur",
+};
 
 const isRegister = computed(() => mode.value === "register");
 
@@ -195,5 +235,39 @@ async function submit() {
         {{ pending ? "Veuillez patienter…" : isRegister ? "Créer mon compte" : "Se connecter" }}
       </button>
     </form>
+
+    <!-- Comptes de démonstration : présents uniquement hors production. -->
+    <section v-if="demoAccounts.length > 0" class="mt-6 border-t border-dashed border-gray-300 pt-4">
+      <button
+        type="button"
+        class="flex w-full items-center justify-between text-left text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-700"
+        @click="demoOpen = !demoOpen"
+      >
+        <span>Comptes de démo (dev)</span>
+        <span>{{ demoOpen ? "−" : "+" }}</span>
+      </button>
+
+      <ul v-if="demoOpen" class="mt-2 space-y-2">
+        <li v-for="account in demoAccounts" :key="account.email">
+          <button
+            type="button"
+            class="flex w-full flex-col rounded border border-gray-200 px-3 py-2 text-left text-sm hover:border-green-600 hover:bg-green-50 disabled:opacity-50"
+            :disabled="pending"
+            @click="loginAs(account)"
+          >
+            <span class="font-semibold text-gray-900">
+              {{ roleLabels[account.role] }} — {{ account.name }}
+              <span v-if="demoPendingEmail === account.email" class="text-xs font-normal">…</span>
+            </span>
+            <span class="text-xs text-gray-500">{{ account.hint }}</span>
+            <span class="text-xs text-gray-400">{{ account.email }}</span>
+          </button>
+        </li>
+      </ul>
+
+      <p v-if="demoOpen" class="mt-2 text-xs text-gray-400">
+        Bouton disponible seulement en développement : ces comptes n'existent pas en production.
+      </p>
+    </section>
   </section>
 </template>

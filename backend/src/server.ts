@@ -2,11 +2,12 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import cors from 'cors';
 import multer from 'multer';
 
-import { PORT } from './config/env.js';
+import { IS_PRODUCTION, PORT } from './config/env.js';
 import { db } from './db.js';
 import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
 import { clientRouter } from './routes/client.js';
+import { demoRouter } from './routes/demo.js';
 import { farmerRouter } from './routes/farmer.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { seedDatabase } from './seed.js';
@@ -43,6 +44,12 @@ app.use('/api/farmer', farmerRouter);
 
 // Administration — farm validation (`C3-F1`).
 app.use('/api/admin', adminRouter);
+
+// Demo shortcuts — **development only**. Mounted conditionally rather than
+// guarded inside the route, so a production build has no route at all.
+if (!IS_PRODUCTION) {
+  app.use('/api/demo', demoRouter);
+}
 
 /**
  * Central error handler.

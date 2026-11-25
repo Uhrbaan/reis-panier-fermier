@@ -121,9 +121,8 @@ onMounted(() => {
       v-else-if="!isFarmer"
       class="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
     >
-      Ce compte n'a pas le rôle <strong>FARMER</strong>. Crée un compte producteur ou
-      connecte-toi avec un compte de démonstration
-      (<code>marc@example.ch</code>).
+      Ce compte n'a pas le rôle <strong>FARMER</strong>. Crée un compte producteur ou utilise
+      un compte de démonstration depuis le panneau « Comptes de démo » du formulaire de connexion.
     </div>
 
     <template v-else>
