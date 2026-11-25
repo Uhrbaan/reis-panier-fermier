@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 
 import { hashPassword } from './services/passwords.js';
+import { generateBasketReference } from './services/references.js';
 import { renderDescription } from './services/markdown.js';
 import { countUsers, insertUser } from './repositories/users.js';
 import type { PaymentMethod } from './types/models.js';
@@ -151,10 +152,10 @@ function insertDemoBaskets(
   const createBasket = (status: string, paymentMethod: string): number => {
     const basket = db
       .prepare(
-        `INSERT INTO baskets (client_id, farm_id, payment_method, status, total_amount)
-         VALUES (?, ?, ?, ?, 0)`,
+        `INSERT INTO baskets (client_id, farm_id, payment_method, status, total_amount, reference)
+         VALUES (?, ?, ?, ?, 0, ?)`,
       )
-      .run(clientId, farmId, paymentMethod, status);
+      .run(clientId, farmId, paymentMethod, status, generateBasketReference());
 
     return Number(basket.lastInsertRowid);
   };
