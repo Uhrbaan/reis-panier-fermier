@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import {
-  createBasket,
-  fetchFarmById,
-  paymentMethodLabel,
-  type Farm,
-  type PaymentMethod,
-} from "../api";
-import { isAuthenticated } from "../auth";
+import { fetchFarmById, createBasket, paymentMethodLabel, type Farm, type PaymentMethod } from "../api";
 
 const route = useRoute();
 const router = useRouter();
@@ -69,30 +62,46 @@ const subtotal = computed(() =>
   basketLines.value.reduce((sum, line) => sum + line.lineTotal, 0)
 );
 
-/**
- * Buying needs an account, not a particular role: producers and administrators
- * buy food too. The server only refuses an order placed on one's own farm.
- */
-const canOrder = computed(() => isAuthenticated.value);
+/** Filled after a successful order so the client can note the reference down. */
+const placed = ref<{ reference: string; accessToken?: string } | null>(null);
+
+/** Access link for a guest basket, so they can come back to accept an offer. */
+const guestLink = computed(() => {
+  if (!placed.value?.accessToken) return "";
+  const query = new URLSearchParams({
+    reference: placed.value.reference,
+    token: placed.value.accessToken,
+  });
+  return `${window.location.origin}/panier?${query.toString()}`;
+});
+
+/** Transient feedback for the copy button. */
+const linkCopied = ref(false);
+
+async function copyGuestLink() {
+  try {
+    await navigator.clipboard.writeText(guestLink.value);
+    linkCopied.value = true;
+    window.setTimeout(() => (linkCopied.value = false), 2000);
+  } catch {
+    // Clipboard access can be denied; the link stays visible to copy by hand.
+    linkCopied.value = false;
+  }
+}
 
 async function submitOrder() {
   if (!farm.value || basketLines.value.length === 0 || !selectedPayment.value) return;
 
   submitError.value = null;
-
-  if (!canOrder.value) {
-    submitError.value = "Connectez-vous pour commander.";
-    return;
-  }
-
   submitting.value = true;
 
   try {
-    await createBasket(
+    const result = await createBasket(
       farm.value.id,
       selectedPayment.value,
       basketLines.value.map((l) => ({ productId: l.product.id, quantity: l.quantity }))
     );
+    placed.value = { reference: result.reference, accessToken: result.accessToken };
     orderSubmitted.value = true;
   } catch (error) {
     submitError.value =
@@ -234,9 +243,51 @@ async function submitOrder() {
         v-if="orderSubmitted"
         class="rounded border border-green-700 bg-green-50 p-4 text-sm text-green-900"
       >
-        <strong>Demande envoyée !</strong> Le producteur va vérifier la disponibilité de vos articles
-        et vous transmettre son offre finale.
+        <p>
+          <strong>Demande envoyée !</strong> Le producteur va vérifier la disponibilité de vos
+          articles et vous transmettre son offre finale.
+        </p>
+
+        <!-- La référence sert de numéro de dossier en cas de litige. -->
+        <p v-if="placed" class="mt-3">
+          Votre référence de panier :
+          <strong class="rounded bg-white px-2 py-0.5 font-mono text-base">
+            {{ placed.reference }}
+          </strong>
+        </p>
+        <p v-if="placed" class="mt-1 text-xs text-green-800">
+          Notez-la : c'est le numéro à indiquer à l'administrateur en cas de problème avec cette
+          commande.
+        </p>
+
+        <!-- Panier invité : le lien est le seul moyen de revenir sur la demande. -->
+        <div v-if="guestLink" class="mt-3 rounded border border-green-300 bg-white p-3">
+          <p class="font-semibold">Conservez ce lien</p>
+          <p class="mt-1 text-xs text-gray-600">
+            Vous n'avez pas de compte : ce lien est le seul moyen de consulter l'offre du producteur
+            et de l'accepter.
+          </p>
+          <a
+            :href="guestLink"
+            class="mt-2 block break-all text-xs font-medium text-green-800 underline"
+          >
+            {{ guestLink }}
+          </a>
+          <button
+            type="button"
+            class="mt-2 rounded border border-green-700 px-3 py-1 text-xs font-semibold text-green-800 hover:bg-green-100"
+            @click="copyGuestLink"
+          >
+            {{ linkCopied ? "Lien copié ✓" : "Copier le lien" }}
+          </button>
+          <p class="mt-3 border-t border-gray-200 pt-2 text-xs text-gray-600">
+            Créez un compte pour retrouver vos paniers et être prévenu des offres sans avoir à
+            conserver ce lien.
+          </p>
+        </div>
+
         <button
+          v-else
           type="button"
           class="mt-2 block text-sm font-semibold text-green-800 underline"
           @click="router.push('/mes-paniers')"

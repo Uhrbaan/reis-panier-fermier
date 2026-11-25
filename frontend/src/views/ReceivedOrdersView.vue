@@ -148,9 +148,20 @@ function isActionable(basket: Basket): boolean {
       >
         <header class="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h2 class="font-semibold text-gray-900">{{ basket.clientName }}</h2>
+            <h2 class="font-semibold text-gray-900">
+              {{ basket.clientName }}
+              <!-- Un invité n'a pas de compte : pas de cloche à notifier (`C3-F2`). -->
+              <span
+                v-if="basket.isGuest"
+                class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-normal text-gray-600"
+                title="Commande passée sans compte : le client suit son panier par son lien personnel."
+              >
+                invité
+              </span>
+            </h2>
             <p class="text-xs text-gray-500">
-              Panier #{{ basket.id }} · {{ basket.createdAt }} ·
+              Référence <strong class="font-mono">{{ basket.reference }}</strong> ·
+              {{ basket.createdAt }} ·
               {{ paymentMethodLabel(basket.paymentMethod) }}
             </p>
           </div>

@@ -294,11 +294,16 @@ export interface BasketItem {
 
 export interface Basket {
   id: number;
+  /** Public short reference quoted when contacting support about a dispute. */
+  reference: string;
   farmId: number;
   farmName: string;
   farmOwnerId: number;
-  clientId: number;
+  /** `null` for a guest basket, placed without an account. */
+  clientId: number | null;
   clientName: string;
+  /** True when the basket was placed without an account. */
+  isGuest: boolean;
   paymentMethod: PaymentMethod;
   status: BasketStatus;
   /** Sum of the retained lines only (`C3-F3`). */
@@ -307,6 +312,18 @@ export interface Basket {
   clientTotal: number;
   createdAt: string;
   items: BasketItem[];
+}
+
+/**
+ * Result of placing a basket.
+ *
+ * A guest has no account to come back to, so `accessToken` is issued exactly
+ * once, here. It is the only way back to the basket and must be kept.
+ */
+export interface BasketCreation {
+  basket: Basket;
+  reference: string;
+  accessToken?: string;
 }
 
 /** French labels for the basket lifecycle. */
@@ -326,12 +343,18 @@ export interface BasketLineInput {
   quantity: number;
 }
 
-/** Compose a basket request for one farm (`C1-F3`). */
+/**
+ * Compose a basket request for one farm (`C1-F3`).
+ *
+ * Works signed in or not: without a token the server creates a guest basket and
+ * returns the access token. `authHeaders()` simply yields nothing when there is
+ * no session.
+ */
 export async function createBasket(
   farmId: number,
   paymentMethod: PaymentMethod,
   lines: BasketLineInput[]
-): Promise<Basket> {
+): Promise<BasketCreation> {
   const response = await fetch(`${API_BASE}/client/baskets`, {
     method: "POST",
     headers: {
@@ -341,6 +364,42 @@ export async function createBasket(
     },
     body: JSON.stringify({ farmId, paymentMethod, lines }),
   });
+
+  return handleResponse<BasketCreation>(response);
+}
+
+/** Read a guest basket from its reference plus the secret access token (`C1-F4`). */
+export async function fetchGuestBasket(
+  reference: string,
+  accessToken: string
+): Promise<Basket> {
+  const response = await fetch(
+    `${API_BASE}/client/baskets/${encodeURIComponent(reference)}?token=${encodeURIComponent(accessToken)}`,
+    { headers: { Accept: "application/json" } }
+  );
+
+  const data = await handleResponse<{ basket: Basket }>(response);
+  return data.basket;
+}
+
+/** Accept or refuse an offer on a guest basket (`C1-F4`). */
+export async function respondToGuestBasket(
+  reference: string,
+  accessToken: string,
+  accept: boolean
+): Promise<Basket> {
+  const response = await fetch(
+    `${API_BASE}/client/baskets/${encodeURIComponent(reference)}/respond`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Basket-Token": accessToken,
+      },
+      body: JSON.stringify({ accept }),
+    }
+  );
 
   const data = await handleResponse<{ basket: Basket }>(response);
   return data.basket;

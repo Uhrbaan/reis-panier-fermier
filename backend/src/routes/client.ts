@@ -163,7 +163,10 @@ clientRouter.post(
       }
     }
 
-    const basket = userId !== null ? findBasketForClient(db, userId, outcome.basketId) : undefined;
+    // The basket is read back for both cases: the producer notification needs
+    // the total, and a guest has no other way to see what was created.
+    const basket = findBasketForClient(db, userId ?? -1, outcome.basketId) ??
+      findBasketByGuestAccess(db, outcome.reference, outcome.accessToken);
 
     // The producer learns about the request here (`C3-F2`). The notification is
     // written in the same transaction as the basket, so a basket can never

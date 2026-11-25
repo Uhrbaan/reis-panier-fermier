@@ -127,7 +127,8 @@ const statusClasses: Record<string, string> = {
           <div>
             <h2 class="font-semibold text-gray-900">{{ basket.farmName }}</h2>
             <p class="text-xs text-gray-500">
-              Panier #{{ basket.id }} · {{ basket.createdAt }} ·
+              Référence <strong class="font-mono">{{ basket.reference }}</strong> ·
+              {{ basket.createdAt }} ·
               {{ paymentMethodLabel(basket.paymentMethod) }}
             </p>
           </div>
