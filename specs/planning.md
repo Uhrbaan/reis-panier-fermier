@@ -20,12 +20,12 @@
     * Login: single "Invalid e-mail or password" message for both an unknown e-mail *and* a wrong password (no account enumeration).
     * The JWT payload stays minimal (`sub`, `email`, `role`, `iat`, `exp`) — `C1-NF1` preserved.
   * Remaining: no `layouts/` directory (the 3 "layouts" are in fact 4 flat views plus a navbar in `App.vue`), and no router guard (deliberate: security is server-side, `ADR-07`).
-* [~] **T1.4 (Dev B):** Implement `NotificationService` (internal SQLite bell) + Vue component `NotificationBell.vue` (Dev A).
-  * **Backend done:** `backend/src/services/notifications.ts` (`NotificationChannel` interface + `InAppChannel` + `NotificationService`, `ADR-05`) and `backend/src/routes/notifications.ts` (`GET /api/notifications` with `unreadCount`, `PATCH /api/notifications/:id/read`).
+* [X] **T1.4 (Dev B):** Implement `NotificationService` (internal SQLite bell) + Vue component `NotificationBell.vue` (Dev A). — **Done**
+  * `backend/src/services/notifications.ts` (`NotificationChannel` interface + `InAppChannel` + `NotificationService`, `ADR-05`) and `backend/src/routes/notifications.ts`.
   * Notifications are written **inside the basket transaction**, so a basket can never exist without the producer having been told about it.
   * Covered transitions (`C3-F2`): basket created → producer; offer adjusted or fully refused → client; client decision → producer.
-  * **Remaining: `NotificationBell.vue`** (the dropdown in the navbar). The backend it needs is complete.
-  * The `NotificationBell.vue` component is in fact Dev A's work (inconsistency in the original roadmap, preserved as-is).
+  * **The bell works for anonymous visitors too** (`ADR-10`): the recipient is the account or the device session, so a guest is told when the producer changes their offer.
+  * `NotificationBell.vue` is visible to every visitor and polls `GET /api/notifications` every 30 s.
 * [ ] **T1.5 (Dev B):** Develop the Client interface.
 
 ## Week 2: Producer & Administration Flow (Storefront, Upload, Geocoding, Validation)
@@ -79,27 +79,22 @@
 * [ ] **T4.3 (Dev A & B):** Configure `.github/workflows/ci.yml` to automatically run the tests and the PlantUML generation on every push.
 * [ ] **T4.4 (Dev A & B):** Finalise `specs/traceability.md`, `README.md` (including the AI usage declaration) and the PDF presentation (10–15 min).
 
-## Status notes as of 25 November 2026 (after the guest-basket revision)
+## Status notes as of 25 November 2026 (after the cookie-identity revision)
 
-**Design revision — three frictions removed:**
+**Design revision — anonymous visitors get a real identity (`ADR-10`).**
 
-1. **Buying is no longer a role** (`ADR-08`). Producers and administrators buy food too, so the basket routes require authentication only. Ordering from one's own farm is the one combination that makes no sense and is refused with `409 SELF_ORDER`.
-2. **No account is needed to order** (`ADR-09`). A guest basket carries a short public `reference` (`PF-7K3M9Q`) to quote to support and a 32-hex `access_token` that is the only key to the basket. The two are separate so that forwarding a link or reading a screen cannot expose someone else's basket. Accounts are now purely a convenience (history, notifications).
-3. **Every basket has a reference for disputes** (`C3-F5`). The reference is displayed to the client, the producer and the administrator, and `GET /api/admin/baskets/:reference` lets the admin identify the basket being reported.
+The first guest implementation handed out a secret access link, which made continuity the user's problem: lose the link and the basket is unreachable — arguably worse than the account it replaced. The device now gets an identity automatically. The first order issues an opaque 32-byte token in an `HttpOnly`, `SameSite=Lax` cookie (30 days), with only its SHA-256 digest stored server-side. Baskets and notifications are then scoped to that device session, so "Mes paniers" and the bell work with no account at all.
 
-**Schema:** `baskets.client_id` is now nullable, with new `reference` and `access_token` columns. Because SQLite cannot drop `NOT NULL` in place, the table is rebuilt by a guarded migration; verified on a database built with the old schema (rows, items and notifications preserved, 0 orphans, FK enforcement restored) and idempotent across repeated boots.
+Why an opaque token rather than the basket id in the cookie: if the cookie were the id, editing `basket_id=1` to `2` would read someone else's order. Verified that a forged cookie sees 0 baskets and cannot answer another guest's basket (`404`).
 
-**Delivered:** backend foundation (SQLite schema + migration, seed, JWT, `requireAuth`/`requireRole`), **authentication** (`/api/auth/login`, `/register`, `/me` + `AuthModal.vue`), public endpoints `/api/client/farms[/:id]`, **producer endpoints `/api/farmer/*`** (storefront + catalogue, `owner_id` isolation), **admin endpoints `/api/admin/*`** and the **approval interface `AdminView.vue`** (`C3-F1`), server geocoding, banner upload, server-side sanitised Markdown rendering (`ADR-04`), map + farm details, producer interface.
+**Verified in a headless browser, logged out and with no stored token:** order placed → reference shown → `document.cookie` empty (the cookie is genuinely `HttpOnly`) → `/mes-paniers` lists the basket and survives a hard reload → after the producer adjusts the order, the bell shows an unread badge of 1 with the offer message.
 
-**Basket flow now complete end to end:** a client (signed in **or** guest) composes a basket (`C1-F3`) → the producer is notified (`C3-F2`) → removes an unavailable item and the total is recalculated server-side (`C2-F5`, `C3-F3`) → the client is notified or returns via their access link and accepts or refuses (`C1-F4`). Removing every item rejects the request. Prices are frozen at request time.
+**Migration** from the previous schema is a guarded rebuild of `baskets` and `notifications` (SQLite cannot drop `NOT NULL` in place). Verified on a database built with the old schema: `access_token` dropped, `guest_session_id` added to both tables, every row preserved, 0 orphans, FK enforcement restored, idempotent across repeated boots.
 
-**Verified over real HTTP and in a headless browser:** 8 rejection paths, the adjust → accept loop, full-removal → `REJECTED`, cross-tenant isolation, double-transition `409`, notification scoping, the live total preview, and the complete guest journey from a logged-out browser to a confirmed basket.
-
-**Demo data:** the seed also creates 2 baskets so both basket views are non-empty on a fresh checkout.
+**Also fixed:** `apiFetch` called itself because the refactor script rewrote the `fetch` inside it — every page blew the stack. Caught by exercising the real UI rather than trusting the typecheck. All 19 API calls now go through one wrapper with `credentials: "include"`, so a new endpoint cannot forget the cookie.
 
 **Remaining blockers:**
-1. `T1.4` — `NotificationBell.vue` only. The backend is done and returns `unreadCount`. Note that a guest has no bell by definition, which is the intended trade-off.
-2. `T1.5` — the client interface is limited to the map, farm details, "Mes paniers" and the guest basket page (no unified `ClientLayout.vue`).
-3. `T4.1`–`T4.3` — no `tests/` directory, no CI workflow. **Outside the scope for now** (course bonus, to be handled on explicit request).
+1. `T1.5` — the client interface is limited to the map, farm details and "Mes paniers" (no unified `ClientLayout.vue`).
+2. `T4.1`–`T4.3` — no `tests/` directory, no CI workflow. **Outside the scope for now** (course bonus, to be handled on explicit request).
 
 **Naming inconsistency to fix:** `AGENTS.md` and `README.md` reference `specs/task-planning.md`, whereas the actual file is `specs/planning.md`.

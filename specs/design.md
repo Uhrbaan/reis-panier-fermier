@@ -17,7 +17,9 @@
 6. **ADR-06 — Unified lightweight authentication:** A single `users` table handles the three roles (`CLIENT`, `FARMER`, `ADMIN`) via JWT. No address or GPS field exists on `users` (`C1-NF1`).
 7. **ADR-07 — Server-side authorisation only:** `requireAuth` validates the JWT signature and expiry then **re-reads the user from the database** on every request (the role carried by the token is never treated as truth); `requireRole('FARMER' | 'ADMIN')` then restricts access. Vue Router guards are only a UI convenience and never constitute the security boundary. All producer writes are additionally filtered in SQL by `owner_id = req.user.id`.
 8. **ADR-08 — Buying is not a role:** placing a basket requires an authenticated user, not the `CLIENT` role. Producers and administrators buy food too, so gating checkout on `role = 'CLIENT'` was an artificial restriction. The single combination that makes no sense is ordering from one's own farm, which `createBasket` refuses with `SELF_ORDER` (`409`). `CLIENT` therefore remains a label for "registered to buy", not a permission.
-9. **ADR-09 — Guest baskets via reference + access token:** ordering does not require an account either (`C1-F3`). Requiring an e-mail address to buy is friction users do not expect, and nothing in the flow needs an identity, so an account becomes a convenience (order history, notifications) rather than a gate. A guest basket carries two values with different purposes: `reference` is short, public and quoted when contacting support (`C3-F5`); `access_token` is a 32-hex secret carried in the guest's access link and is the **only** thing that opens the basket. They are separate so that forwarding an e-mail or reading a screen cannot expose someone else's basket. Guest lookups with a wrong or missing token answer `404`, identical to an unknown reference, so the endpoint cannot be used to enumerate references. No e-mail is collected from guests: with no e-mail channel it would be personal data with no purpose.
+9. **ADR-10 — Anonymous device identity via a session cookie:** ordering does not require an account (`C1-F3`). Requiring an e-mail address to buy is friction users do not expect, and nothing in the flow needs an identity, so an account becomes a convenience (e-mail reminders) rather than a gate. The first order issues an **opaque 32-byte token** in an `HttpOnly`, `SameSite=Lax` cookie valid 30 days, and only its SHA-256 digest is stored in `guest_sessions`. That cookie is what makes the basket and the notification bell follow the visitor across page loads.
+
+   Why a cookie and not the previous access link: a link puts continuity on the user ("keep this link"), and losing it makes the basket unreachable — a worse experience than the account it replaced. Why an opaque token and not the basket id in the cookie: if the cookie *were* the id, editing `basket_id=1` to `2` would read someone else's order. `HttpOnly` keeps the token out of reach of injected scripts and `SameSite=Lax` blocks cross-site form posts. 30 days is deliberately generous: nobody waits that long for fresh produce, so cross-device sync and expiry are not worth the complexity here. No e-mail is collected from guests: with no e-mail channel it would be personal data with no purpose.
 
 ## 3. SQLite Database Schema
 
@@ -59,19 +61,27 @@ CREATE TABLE products (
 
 CREATE TABLE baskets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  -- NULL for a guest basket: ordering does not require an account (ADR-09).
+  -- Exactly one of these identifies the buyer: a registered account, or the
+  -- anonymous device session that placed the order (ADR-10).
   client_id INTEGER REFERENCES users(id),
+  guest_session_id INTEGER REFERENCES guest_sessions(id),
   farm_id INTEGER NOT NULL REFERENCES farms(id),
   payment_method TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'PENDING_FARMER' CHECK(status IN ('PENDING_FARMER', 'OFFER_PROPOSED', 'CONFIRMED', 'REJECTED')),
   total_amount REAL NOT NULL DEFAULT 0,
   -- Short public reference quoted when contacting support about a dispute
-  -- (C3-F5). It is NOT a secret: it cannot open the basket on its own.
+  -- (C3-F5). Public by design: it identifies a basket but grants nothing.
   reference TEXT,
-  -- Secret capability carried in a guest's access link. NULL for baskets
-  -- owned by an account, which are reached via client_id.
-  access_token TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Anonymous device identity (ADR-10). Only the digest is stored, so a
+-- database leak hands out no live session.
+CREATE TABLE guest_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  token_hash TEXT UNIQUE NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME NOT NULL
 );
 
 CREATE TABLE basket_items (
@@ -85,7 +95,9 @@ CREATE TABLE basket_items (
 
 CREATE TABLE notifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL REFERENCES users(id),
+  -- Recipient: a registered account, or an anonymous device session (ADR-10).
+  user_id INTEGER REFERENCES users(id),
+  guest_session_id INTEGER REFERENCES guest_sessions(id),
   message TEXT NOT NULL,
   basket_id INTEGER REFERENCES baskets(id),
   is_read INTEGER NOT NULL DEFAULT 0,
@@ -136,12 +148,11 @@ The token is signed with `JWT_SECRET` (mandatory when `NODE_ENV=production`, dev
 | :--- | :--- | :--- | :--- |
 | create | `POST /api/client/baskets` | — | `PENDING_FARMER` (account **or** guest) |
 | adjust | `PATCH /api/farmer/baskets/:id/adjust` | `PENDING_FARMER` | `OFFER_PROPOSED`, or `REJECTED` if no line survives |
-| accept / refuse | `PATCH /api/client/baskets/:id/respond` | `OFFER_PROPOSED` | `CONFIRMED` / `REJECTED` (account) |
-| accept / refuse (guest) | `PATCH /api/client/baskets/:reference/respond` | `OFFER_PROPOSED` | `CONFIRMED` / `REJECTED` (token) |
+| accept / refuse | `PATCH /api/client/baskets/:id/respond` | `OFFER_PROPOSED` | `CONFIRMED` / `REJECTED` (account **or** device session) |
 
 Any other transition answers `409 INVALID_TRANSITION`. The guard is implemented in the SQL `WHERE` clause rather than in a read-then-write sequence, so two concurrent adjustments cannot both succeed.
 
-**Schema migration (`ADR-09`).** Relaxing `baskets.client_id` to nullable cannot be done with `ALTER TABLE` in SQLite, so `db.ts` rebuilds the table (`foreign_keys = OFF` → copy → rename → `PRAGMA foreign_key_check` → `ON`). It is guarded by a column check and therefore runs at most once per database. The unique indexes on `reference`/`access_token` are created **after** the migration, because on a pre-guest database those columns do not exist when `SCHEMA_SQL` runs.
+**Schema migration (`ADR-10`).** Relaxing `baskets.client_id` and `notifications.user_id` to nullable cannot be done with `ALTER TABLE` in SQLite, so `db.ts` rebuilds both tables (`foreign_keys = OFF` → copy → rename → `PRAGMA foreign_key_check` → `ON`). Each is guarded by a column check and therefore runs at most once per database. The unique index on `reference` is created **after** the migration, because on a pre-guest database the column does not exist when `SCHEMA_SQL` runs.
 
 ### Authentication & Notifications (All roles)
 
@@ -150,18 +161,16 @@ Any other transition answers `409 INVALID_TRANSITION`. The guard is implemented 
 * `POST /api/auth/register` — Account creation (`CLIENT` or `FARMER`). **Implemented:** `201 { token, user, id }`. E-mail normalised to lowercase; password 8–72 characters (bcrypt limit); `409` if the e-mail already exists; `400` if `role` is `ADMIN` (self-assignment forbidden).
 * `POST /api/auth/login` — Login returning the JWT token + user profile. **Implemented:** `200 { token, user }`, `401` with a single message whether the e-mail is unknown or the password is wrong (no account enumeration).
 * `GET /api/auth/me` — Profile of the token holder. **Implemented** (`requireAuth`), lets the SPA validate a stored token on startup.
-* `GET /api/notifications` — List of the connected user's notifications, plus `unreadCount` (`C3-F2`). **Implemented** (`backend/src/routes/notifications.ts`, `services/notifications.ts`). Not role-restricted: every authenticated user receives notifications, and every query is scoped by `req.user.id`.
+* `GET /api/notifications` — The caller's notifications plus `unreadCount` (`C3-F2`). **Implemented** (`backend/src/routes/notifications.ts`, `services/notifications.ts`). Neither role- nor login-restricted: the recipient is the account (JWT) or the anonymous device session (cookie, `ADR-10`), so a guest has a working bell. A caller with neither gets an empty list, not a `401`.
 * `PATCH /api/notifications/:id/read` — Marks a notification as read. **Implemented:** `200 { unreadCount }`, `404` when the notification is unknown *or* belongs to someone else (deliberately indistinguishable).
 
 ### Client & Public area (`/api/client/*`)
 
 * `GET /api/client/farms` — Returns all farms with `APPROVED` status (`C1-F1`). **Implemented** (`backend/src/routes/client.ts`, public, no authentication).
 * `GET /api/client/farms/:id` — Details of an approved farm + its product list (`C1-F2`). **Implemented:** returns `404` if the farm does not exist or is not `APPROVED`.
-* `POST /api/client/baskets` — Creates a basket request (`C1-F3`, `C3-F3`). **Implemented:** `201 { basket, reference, accessToken? }`. **Authentication is optional:** with a valid token the basket belongs to the account; without one a guest basket is created and `accessToken` is returned **exactly once**. The server never trusts client-supplied prices: it resolves each `productId` against the target farm and stores `unit_price_snapshot` itself. Errors: `400` (empty basket, duplicate product, quantity < 1 or > 999, more than 100 lines, unknown payment method, or a method the farm does not accept), `404` (unknown *or* non-approved farm — same answer), `409 SELF_ORDER` (a producer ordering from their own farm, `ADR-08`).
-* `GET /api/client/baskets` — Lists the baskets of the connected user, newest first (`requireAuth`, any role). **Implemented.**
-* `GET /api/client/baskets/:reference?token=…` — Reads a **guest** basket (`C1-F4`). **Implemented:** the token may also be sent as `X-Basket-Token`. `404` for an unknown reference, a wrong token, or a basket that belongs to an account — all indistinguishable, so the endpoint cannot enumerate references.
+* `POST /api/client/baskets` — Creates a basket request (`C1-F3`, `C3-F3`). **Implemented:** `201 { basket, reference }`. **Authentication is optional:** with a valid token the basket belongs to the account; without one it belongs to the device, and a guest session cookie is issued (`ADR-10`). No credential is returned in the body, so there is nothing for the client to store. The server never trusts client-supplied prices: it resolves each `productId` against the target farm and stores `unit_price_snapshot` itself. Errors: `400` (empty basket, duplicate product, quantity < 1 or > 999, more than 100 lines, unknown payment method, or a method the farm does not accept), `404` (unknown *or* non-approved farm — same answer), `409 SELF_ORDER` (a producer ordering from their own farm, `ADR-08`).
+* `GET /api/client/baskets` — Lists the caller's baskets, newest first. **Implemented:** authentication is optional; the recipient is the account (JWT) or the anonymous device session (cookie). Reading never issues a cookie, and a visitor with neither simply gets `[]` rather than `401`.
 * `PATCH /api/client/baskets/:id/respond` — Accepts (`CONFIRMED`) or refuses (`REJECTED`) an offer (`C1-F4`). **Implemented:** `200 { basket }`, `400` when `accept` is not a boolean, `404` for a foreign/unknown basket, `409 INVALID_TRANSITION` unless the basket is `OFFER_PROPOSED`.
-* `PATCH /api/client/baskets/:reference/respond` — Same decision for a **guest** basket, authorised by the access token instead of a session. **Implemented.**
 
 ### Producer area (`/api/farmer/*` — `FARMER` role required)
 
@@ -185,6 +194,6 @@ Any other transition answers `409 INVALID_TRANSITION`. The guard is implemented 
 
 ## 5. Frontend Component Structure (`frontend/src/`)
 
-* **Current structure:** `App.vue` (navbar + `<router-view>`), `router.ts` (6 routes), `auth.ts` (reactive store + `authHeaders`), `api.ts` (shared types + typed calls), `markdown.ts` (lazy-loaded Markdown preview). Views: `ClientView.vue` (MapLibre map + popups), `FarmView.vue` (farm details + basket composition), `MyBasketsView.vue` (client baskets, accept/refuse), `FarmerView.vue` (producer area), `ReceivedOrdersView.vue` (producer order handling), `AdminView.vue` (farm validation). Components: `FarmEditor.vue`, `ProductManager.vue`, `AuthModal.vue`.
+* **Current structure:** `App.vue` (navbar + bell + `<router-view>`), `router.ts` (6 routes), `auth.ts` (reactive store + `authHeaders`), `api.ts` (shared types, typed calls, single `apiFetch` wrapper that sends the guest cookie), `markdown.ts` (lazy-loaded Markdown preview). Views: `ClientView.vue` (MapLibre map + popups), `FarmView.vue` (farm details + basket composition, no login required), `MyBasketsView.vue` (baskets of the account **or** the device, accept/refuse), `FarmerView.vue` (producer area), `ReceivedOrdersView.vue` (producer order handling), `AdminView.vue` (farm validation). Components: `FarmEditor.vue`, `ProductManager.vue`, `AuthModal.vue`, `NotificationBell.vue`.
 * **Layouts (not delivered):** `ClientLayout.vue` (map + bell + my baskets), `FarmerLayout.vue` (storefront/products/orders menu + bell), `AdminLayout.vue`. The areas are currently flat views plus a shared navbar.
-* **Shared components (not delivered):** `NotificationBell.vue`. The notification **backend** is complete (`C3-F2`): `GET /api/notifications` returns the list plus `unreadCount`, so the bell only needs to call it and render a dropdown.
+* **Shared components:** `NotificationBell.vue` (delivered) — visible to every visitor, guest included, polling `GET /api/notifications` every 30 s and showing an unread badge. It is deliberately not gated on authentication, since the server resolves guests from their cookie.
