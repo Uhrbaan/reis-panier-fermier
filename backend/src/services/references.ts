@@ -1,17 +1,13 @@
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 
 /**
- * Human-facing basket references and guest access tokens.
+ * Human-facing basket references.
  *
- * Two separate values on purpose:
- *
- * - `reference` is **short, readable and public**. The client quotes it when
- *   contacting support about a dispute (`C3-F5`), and the producer sees it in
- *   their order list. Knowing it must never grant access, otherwise forwarding
- *   an e-mail or reading a screen would expose someone's basket.
- * - `access_token` is the **secret capability** carried in a guest's access
- *   link. It is long and random, and it is the only thing that opens a guest
- *   basket.
+ * `reference` is **short, readable and public**: the client quotes it when
+ * contacting support about a dispute (`C3-F5`), and the producer sees it in
+ * their order list. Knowing it grants nothing — access to a basket is decided
+ * by ownership (an account) or by the device session cookie (`ADR-10`), never
+ * by the reference.
  */
 
 /**
@@ -37,11 +33,6 @@ export function generateBasketReference(): string {
   }
 
   return `${REFERENCE_PREFIX}${body}`;
-}
-
-/** Secret capability for a guest basket: 32 hex characters. */
-export function generateAccessToken(): string {
-  return randomBytes(16).toString('hex');
 }
 
 /** Shape check, so a malformed reference is rejected before it reaches SQL. */

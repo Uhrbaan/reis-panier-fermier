@@ -275,9 +275,8 @@ export type CreateBasketOutcome =
  * total are written together or not at all, so a partially priced basket can
  * never be observed by the producer.
  *
- * `clientId` is `null` for a guest order (`C1-F3`). A guest has no account, so
- * the returned `accessToken` is the only way back to the basket — the caller
- * must hand it to the client.
+ * Exactly one of `clientId` / `guestSessionId` is set (`ADR-10`): an account,
+ * or the anonymous device session that placed the order.
  */
 export function createBasket(
   db: Database.Database,
