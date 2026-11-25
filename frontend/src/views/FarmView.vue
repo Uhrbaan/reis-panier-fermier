@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { fetchFarmById, paymentMethodLabel, type Farm, type PaymentMethod } from "../api";
+import {
+  createBasket,
+  fetchFarmById,
+  paymentMethodLabel,
+  type Farm,
+  type PaymentMethod,
+} from "../api";
+import { currentRole, isAuthenticated } from "../auth";
 
 const route = useRoute();
 const router = useRouter();
@@ -12,6 +19,8 @@ const loadError = ref<string | null>(null);
 const quantities = ref<Record<number, number>>({});
 const selectedPayment = ref<PaymentMethod | "">("");
 const orderSubmitted = ref(false);
+const submitting = ref(false);
+const submitError = ref<string | null>(null);
 
 const MAX_QTY = 50;
 
@@ -21,6 +30,7 @@ async function loadFarm() {
   loadError.value = null;
   farm.value = null;
   orderSubmitted.value = false;
+  submitError.value = null;
 
   try {
     const found = await fetchFarmById(id);
@@ -59,20 +69,36 @@ const subtotal = computed(() =>
   basketLines.value.reduce((sum, line) => sum + line.lineTotal, 0)
 );
 
-function submitOrder() {
+/** A client must be signed in to order; the server enforces this too (`C1-F3`). */
+const canOrder = computed(() => isAuthenticated.value && currentRole.value === "CLIENT");
+
+async function submitOrder() {
   if (!farm.value || basketLines.value.length === 0 || !selectedPayment.value) return;
 
-  const payload = {
-    farmId: farm.value.id,
-    paymentMethod: selectedPayment.value,
-    lines: basketLines.value.map((l) => ({
-      productId: l.product.id,
-      quantity: l.quantity,
-    })),
-  };
+  submitError.value = null;
 
-  console.log("Order submitted:", payload);
-  orderSubmitted.value = true;
+  if (!canOrder.value) {
+    submitError.value = isAuthenticated.value
+      ? "Seul un compte client peut commander. Déconnectez-vous pour changer de compte."
+      : "Connectez-vous avec un compte client pour commander.";
+    return;
+  }
+
+  submitting.value = true;
+
+  try {
+    await createBasket(
+      farm.value.id,
+      selectedPayment.value,
+      basketLines.value.map((l) => ({ productId: l.product.id, quantity: l.quantity }))
+    );
+    orderSubmitted.value = true;
+  } catch (error) {
+    submitError.value =
+      error instanceof Error ? error.message : "La demande n'a pas pu être envoyée.";
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 
@@ -209,6 +235,13 @@ function submitOrder() {
       >
         <strong>Demande envoyée !</strong> Le producteur va vérifier la disponibilité de vos articles
         et vous transmettre son offre finale.
+        <button
+          type="button"
+          class="mt-2 block text-sm font-semibold text-green-800 underline"
+          @click="router.push('/mes-paniers')"
+        >
+          Suivre mes paniers
+        </button>
       </div>
 
       <footer
@@ -224,12 +257,16 @@ function submitOrder() {
         <button
           type="button"
           class="rounded bg-green-700 px-5 py-2 font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-40"
-          :disabled="basketLines.length === 0 || !selectedPayment"
+          :disabled="basketLines.length === 0 || !selectedPayment || submitting"
           @click="submitOrder"
         >
-          Commander
+          {{ submitting ? "Envoi…" : "Commander" }}
         </button>
       </footer>
+
+      <p v-if="submitError" class="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+        {{ submitError }}
+      </p>
     </main>
   </div>
 

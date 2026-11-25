@@ -268,3 +268,135 @@ export async function setFarmStatus(
 
   await handleResponse(response);
 }
+
+// ---------------------------------------------------------------------------
+// Baskets (`C1-F3`, `C1-F4`, `C2-F5`)
+// ---------------------------------------------------------------------------
+
+export type BasketStatus =
+  | "PENDING_FARMER"
+  | "OFFER_PROPOSED"
+  | "CONFIRMED"
+  | "REJECTED";
+
+export interface BasketItem {
+  id: number;
+  productId: number;
+  name: string;
+  unit: string;
+  quantity: number;
+  /** Price frozen when the client ordered, not the current catalogue price. */
+  unitPrice: number;
+  lineTotal: number;
+  /** Item dropped by the producer because it was unavailable (`C2-F5`). */
+  removedByFarmer: boolean;
+}
+
+export interface Basket {
+  id: number;
+  farmId: number;
+  farmName: string;
+  farmOwnerId: number;
+  clientId: number;
+  clientName: string;
+  paymentMethod: PaymentMethod;
+  status: BasketStatus;
+  /** Sum of the retained lines only (`C3-F3`). */
+  totalAmount: number;
+  /** Amount the client pays; equals `totalAmount` while the commission is 0. */
+  clientTotal: number;
+  createdAt: string;
+  items: BasketItem[];
+}
+
+/** French labels for the basket lifecycle. */
+export const BASKET_STATUS_LABELS: Record<BasketStatus, string> = {
+  PENDING_FARMER: "En attente du producteur",
+  OFFER_PROPOSED: "Offre à valider",
+  CONFIRMED: "Confirmée",
+  REJECTED: "Refusée",
+};
+
+export function basketStatusLabel(status: BasketStatus): string {
+  return BASKET_STATUS_LABELS[status] ?? status;
+}
+
+export interface BasketLineInput {
+  productId: number;
+  quantity: number;
+}
+
+/** Compose a basket request for one farm (`C1-F3`). */
+export async function createBasket(
+  farmId: number,
+  paymentMethod: PaymentMethod,
+  lines: BasketLineInput[]
+): Promise<Basket> {
+  const response = await fetch(`${API_BASE}/client/baskets`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ farmId, paymentMethod, lines }),
+  });
+
+  const data = await handleResponse<{ basket: Basket }>(response);
+  return data.basket;
+}
+
+/** Baskets placed by the connected client (`C1-F4`). */
+export async function fetchMyBaskets(): Promise<Basket[]> {
+  const response = await fetch(`${API_BASE}/client/baskets`, {
+    headers: { Accept: "application/json", ...authHeaders() },
+  });
+
+  const data = await handleResponse<{ baskets: Basket[] }>(response);
+  return data.baskets;
+}
+
+/** Accept or refuse the producer's adjusted offer (`C1-F4`). */
+export async function respondToBasket(basketId: number, accept: boolean): Promise<Basket> {
+  const response = await fetch(`${API_BASE}/client/baskets/${basketId}/respond`, {
+    method: "PATCH",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ accept }),
+  });
+
+  const data = await handleResponse<{ basket: Basket }>(response);
+  return data.basket;
+}
+
+/** Baskets received by the connected producer's farm (`C2-F5`). */
+export async function fetchReceivedBaskets(): Promise<Basket[]> {
+  const response = await fetch(`${API_BASE}/farmer/baskets`, {
+    headers: { Accept: "application/json", ...authHeaders() },
+  });
+
+  const data = await handleResponse<{ baskets: Basket[] }>(response);
+  return data.baskets;
+}
+
+/** Remove unavailable items and submit the recalculated offer (`C2-F5`). */
+export async function adjustBasket(
+  basketId: number,
+  removedItemIds: number[]
+): Promise<Basket> {
+  const response = await fetch(`${API_BASE}/farmer/baskets/${basketId}/adjust`, {
+    method: "PATCH",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ removedItemIds }),
+  });
+
+  const data = await handleResponse<{ basket: Basket }>(response);
+  return data.basket;
+}

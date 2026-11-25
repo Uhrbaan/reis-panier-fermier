@@ -23,3 +23,6 @@ REQUIREMENTS.pdf
 # Local runtime artefacts (not committed)
 # `backend/data/` is already covered by backend/.gitignore
 backend/uploads/
+
+# Local todo notes (pi harness)
+.pi/
