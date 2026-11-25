@@ -6,8 +6,8 @@
 
 > **Legend:** `[X]` done · `[~]` partial (contract in place, dependency missing) · `[ ]` to do
 >
-> **Last review:** 24 November 2026.
-> The backend now exposes `/api/auth/*`, `/api/client/farms[/:id]`, `/api/farmer/*` and `/api/admin/*`; the remaining functional gap is the basket flow (`T3.2`–`T3.4`).
+> **Last review:** 25 November 2026.
+> The backend now exposes `/api/auth/*`, `/api/client/*` (farms **and** baskets), `/api/farmer/*` (storefront, catalogue **and** received baskets), `/api/admin/*` and `/api/notifications`. The functional flow is complete; the remaining work is the notification bell, the layout polish and the optional test/CI bonus.
 
 ## Week 1: Technical Foundation, Database & Authentication (Shared)
 * [X] **T1.1 (Dev A & B):** Initialise the tree (`client/`, `server/`, `tests/`, `specs/`) and the TypeScript + Tailwind CSS configurations.
@@ -20,7 +20,11 @@
     * Login: single "Invalid e-mail or password" message for both an unknown e-mail *and* a wrong password (no account enumeration).
     * The JWT payload stays minimal (`sub`, `email`, `role`, `iat`, `exp`) — `C1-NF1` preserved.
   * Remaining: no `layouts/` directory (the 3 "layouts" are in fact 4 flat views plus a navbar in `App.vue`), and no router guard (deliberate: security is server-side, `ADR-07`).
-* [ ] **T1.4 (Dev B):** Implement `NotificationService` (internal SQLite bell) + Vue component `NotificationBell.vue` (Dev A).
+* [~] **T1.4 (Dev B):** Implement `NotificationService` (internal SQLite bell) + Vue component `NotificationBell.vue` (Dev A).
+  * **Backend done:** `backend/src/services/notifications.ts` (`NotificationChannel` interface + `InAppChannel` + `NotificationService`, `ADR-05`) and `backend/src/routes/notifications.ts` (`GET /api/notifications` with `unreadCount`, `PATCH /api/notifications/:id/read`).
+  * Notifications are written **inside the basket transaction**, so a basket can never exist without the producer having been told about it.
+  * Covered transitions (`C3-F2`): basket created → producer; offer adjusted or fully refused → client; client decision → producer.
+  * **Remaining: `NotificationBell.vue`** (the dropdown in the navbar). The backend it needs is complete.
   * The `NotificationBell.vue` component is in fact Dev A's work (inconsistency in the original roadmap, preserved as-is).
 * [ ] **T1.5 (Dev B):** Develop the Client interface.
 
@@ -54,11 +58,20 @@
 * [X] **T3.1 (Dev A):** Integrate the MapLibre GL JS + OpenStreetMap interactive map showing only approved farms (`C1-F1`) and the farm detail view (`C1-F2`). — **Done (`941ec98` + `c8e73d5`)**
   * `frontend/src/views/ClientView.vue`: MapLibre GL 4.7.1 loaded from unpkg, markers + popups from `GET /api/client/farms`.
   * `frontend/src/views/FarmView.vue`: farm details via `GET /api/client/farms/:id`, quantity selection, subtotal calculation.
-  * ⚠️ `submitOrder()` is still a stub (`console.log`): the actual submission depends on `T3.2`.
+  * ✅ `submitOrder()` is now wired to `POST /api/client/baskets` (`T3.2` landed).
   * The description is now rendered from `descriptionHtml` (HTML sanitised by the server) rather than plain text: headings/lists/bold typed by the producer display correctly.
-* [ ] **T3.2 (Dev B):** Implement the basket endpoints (`/api/client/baskets`, `/api/farmer/baskets/:id/adjust`, `/api/client/baskets/:id/respond`) and the automatic price calculation (`C1-F3`, `C1-F4`, `C2-F5`, `C3-F3`).
-* [ ] **T3.3 (Dev A):** Develop the client-side basket creation funnel and the "My Baskets" view (acceptance/refusal of an adjusted offer).
-* [ ] **T3.4 (Dev B):** Develop the "Received Orders" view on the Producer side, allowing an unavailable item to be removed and the offer to be validated.
+* [ ] **T3.2 (Dev B):** Implement the basket endpoints (`/api/client/baskets`, `/api/farmer/baskets/:id/adjust`, `/api/client/baskets/:id/respond`) and the automatic price calculation (`C1-F3`, `C1-F4`, `C2-F5`, `C3-F3`). — **Done**
+  * `backend/src/services/pricing.ts`: pure `computeSubtotal` / `computeClientTotal` / `computeCommission` with `COMMISSION_RATE = 0` kept as an explicit named constant so `ADR-01` stays reversible; all results rounded to the rappen.
+  * `backend/src/repositories/baskets.ts`: `createBasket` (single transaction, `unit_price_snapshot` frozen at request time so a later catalogue edit cannot rewrite an existing order), `listBasketsByClient`, `listBasketsByFarmer`, `adjustBasket`, `respondToOffer`.
+  * Routes: `POST/GET /api/client/baskets`, `PATCH /api/client/baskets/:id/respond`, `GET /api/farmer/baskets`, `PATCH /api/farmer/baskets/:id/adjust`.
+  * New convention: **`409 INVALID_TRANSITION`** for a well-formed request the current status forbids; the guard lives in the SQL `WHERE` clause, not in a read-then-write sequence.
+  * Removing every line yields `REJECTED`, not an empty offer.
+  * **Latent bug fixed:** deleting a product that appears in a basket raised `SqliteError: FOREIGN KEY constraint failed` (a 500, since `basket_items.product_id` has no `ON DELETE`). `deleteProduct` now returns an outcome union and the route answers `409 CONFLICT`; unused products still delete with `204`.
+* [X] **T3.3 (Dev A):** Develop the client-side basket creation funnel and the "My Baskets" view (acceptance/refusal of an adjusted offer). — **Done**
+  * `FarmView.vue`: the `console.log` stub is replaced by a real `createBasket` call, gated on a `CLIENT` session, with in-flight and error states.
+  * `MyBasketsView.vue` (`/mes-paniers`): status per basket, removed items struck through and labelled "indisponible", total computed from the retained lines only, Accept/Refuse buttons on `OFFER_PROPOSED`.
+* [X] **T3.4 (Dev B):** Develop the "Received Orders" view on the Producer side, allowing an unavailable item to be removed and the offer to be validated. — **Done**
+  * `ReceivedOrdersView.vue` (`/producteur/commandes`): per-line checkboxes, **live** recalculated total mirroring the server arithmetic, explicit warning when every line is ticked ("the request will be refused"), and a button that renames itself to "Refuser la demande" in that case.
 
 ## Week 4: Automated Tests (Bonus), GitHub Actions CI & Final Documentation
 * [ ] **T4.1 (Dev B):** Write the unit and API integration tests (Vitest + Supertest) covering all active FRs and the measurable NFRs (`C2-NF1`, `C2-NF2`).
@@ -66,20 +79,21 @@
 * [ ] **T4.3 (Dev A & B):** Configure `.github/workflows/ci.yml` to automatically run the tests and the PlantUML generation on every push.
 * [ ] **T4.4 (Dev A & B):** Finalise `specs/traceability.md`, `README.md` (including the AI usage declaration) and the PDF presentation (10–15 min).
 
-## Status notes as of 24 November 2026 (after `T1.3`, `T2.1`–`T2.4`)
+## Status notes as of 25 November 2026 (after `T3.2`–`T3.4`)
 
 **Delivered:** backend foundation (SQLite schema + migration, seed, JWT, `requireAuth`/`requireRole`), **authentication** (`/api/auth/login`, `/register`, `/me` + `AuthModal.vue`), public endpoints `/api/client/farms[/:id]`, **producer endpoints `/api/farmer/*`** (storefront + catalogue, `owner_id` isolation), **admin endpoints `/api/admin/*`** and the **approval interface `AdminView.vue`** (`C3-F1`), server geocoding, banner upload, server-side sanitised Markdown rendering (`ADR-04`), map + farm details, producer interface.
 
-**Journey now working end to end:** registration/login → storefront creation (photo + geocoding) → `PENDING_APPROVAL` → invisible on the public map → approval by the admin in the UI → visible on the map, with a rich-text description.
+**Basket flow now complete end to end:** a client composes a basket (`C1-F3`) → the producer is notified (`C3-F2`) → removes an unavailable item and the total is recalculated server-side (`C2-F5`, `C3-F3`) → the client is notified and accepts or refuses (`C1-F4`). Removing every item rejects the request. Prices are frozen at request time, so later catalogue edits never rewrite history.
 
-**Fixed on 24/11:** banners were not displaying in development — `vite.config.ts` only proxied `/api`, not `/uploads`. The upload and the database were correct (file written to `backend/uploads/`, `banner_url` stored, served by Express with HTTP 200); only the Vite proxy was missing. Added the `/uploads` entry. Also fixed: `authHeaders()` was spread *after* `Content-Type` in two `api.ts` calls (it would have overwritten the header).
+**Verified over real HTTP and in a headless browser:** 8 rejection paths (empty basket, duplicate product, quantity 0, unknown/unauthorised payment method, non-approved farm, unknown farm, unauthenticated), the adjust → accept loop, full-removal → `REJECTED`, cross-tenant isolation (foreign producer `404`, client on a farmer route `403`), double-transition `409`, notification scoping (foreign notification `404`), and the live total preview in the producer UI.
+
+**Demo data:** the seed now also creates 2 baskets (`PENDING_FARMER` 18.00 CHF, `OFFER_PROPOSED` 4.50 CHF with one line already removed) so both new views are non-empty on a fresh checkout.
 
 **Remaining blockers:**
-1. `T3.2`/`T3.3`/`T3.4` — no basket endpoint; `submitOrder()` in `FarmView.vue` is still a stub (`console.log`). This is the main remaining functional gap (`C1-F3`, `C1-F4`, `C2-F5`, `C3-F3`).
-2. `T1.4` — `NotificationService` and `NotificationBell.vue` are missing.
-3. `T1.5` — the client interface is limited to the map + farm details (no "My Baskets").
-4. `T4.1`–`T4.3` — no `tests/` directory, no CI workflow. **Outside the scope for now** (course bonus, to be handled on explicit request).
+1. `T1.4` — `NotificationBell.vue` only. The backend is done and returns `unreadCount`.
+2. `T1.5` — the client interface is limited to the map, farm details and "Mes paniers" (no unified `ClientLayout.vue`).
+3. `T4.1`–`T4.3` — no `tests/` directory, no CI workflow. **Outside the scope for now** (course bonus, to be handled on explicit request).
 
-**Note:** `specs/traceability.md` advertises test suites (`tests/…`) that do not exist and marks undelivered basket requirements as "Implemented"; to be corrected before the final submission.
+**Note:** `specs/traceability.md` advertises test suites (`tests/…`) that do not exist; to be corrected before the final submission.
 
 **Naming inconsistency to fix:** `AGENTS.md` and `README.md` reference `specs/task-planning.md`, whereas the actual file is `specs/planning.md`.

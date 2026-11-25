@@ -109,6 +109,28 @@ The token is signed with `JWT_SECRET` (mandatory when `NODE_ENV=production`, dev
 
 ## 4. REST API Contract
 
+**Error shape.** Every failure answers `{ error, message }`, where `error` is a stable machine-readable code (`BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `INVALID_TRANSITION`, `GEOCODING_FAILED`, `INTERNAL_ERROR`) and `message` is human-readable. The SPA displays `message` (`handleResponse` in `frontend/src/api.ts`).
+
+**`409` is the convention for a well-formed request that the current state forbids.** A basket in the wrong status, a second storefront, or deleting a product still referenced by a basket are conflicts, not client errors: the payload was valid, the transition was not.
+
+### Basket lifecycle (`C1-F3`, `C2-F5`, `C1-F4`)
+
+```
+                 (client)                     (producer)                (client)
+  [create] ──▶ PENDING_FARMER ──adjust──▶ OFFER_PROPOSED ──accept──▶ CONFIRMED
+                     │                         │
+                     │                         └──refuse──────────▶ REJECTED
+                     └──adjust removing all lines──────────────────▶ REJECTED
+```
+
+| Transition | Endpoint | Allowed from | Result |
+| :--- | :--- | :--- | :--- |
+| create | `POST /api/client/baskets` | — | `PENDING_FARMER` |
+| adjust | `PATCH /api/farmer/baskets/:id/adjust` | `PENDING_FARMER` | `OFFER_PROPOSED`, or `REJECTED` if no line survives |
+| accept / refuse | `PATCH /api/client/baskets/:id/respond` | `OFFER_PROPOSED` | `CONFIRMED` / `REJECTED` |
+
+Any other transition answers `409 INVALID_TRANSITION`. The guard is implemented in the SQL `WHERE` clause rather than in a read-then-write sequence, so two concurrent adjustments cannot both succeed.
+
 ### Authentication & Notifications (All roles)
 
 **Auth implementation:** `backend/src/routes/auth.ts`, `frontend/src/components/AuthModal.vue`.
@@ -116,16 +138,16 @@ The token is signed with `JWT_SECRET` (mandatory when `NODE_ENV=production`, dev
 * `POST /api/auth/register` — Account creation (`CLIENT` or `FARMER`). **Implemented:** `201 { token, user, id }`. E-mail normalised to lowercase; password 8–72 characters (bcrypt limit); `409` if the e-mail already exists; `400` if `role` is `ADMIN` (self-assignment forbidden).
 * `POST /api/auth/login` — Login returning the JWT token + user profile. **Implemented:** `200 { token, user }`, `401` with a single message whether the e-mail is unknown or the password is wrong (no account enumeration).
 * `GET /api/auth/me` — Profile of the token holder. **Implemented** (`requireAuth`), lets the SPA validate a stored token on startup.
-* `GET /api/notifications` — List of the connected user's notifications (`C3-F2`). *Not implemented (T1.4).*
-* `PATCH /api/notifications/:id/read` — Marks a notification as read. *Not implemented (T1.4).*
+* `GET /api/notifications` — List of the connected user's notifications, plus `unreadCount` (`C3-F2`). **Implemented** (`backend/src/routes/notifications.ts`, `services/notifications.ts`). Not role-restricted: every authenticated user receives notifications, and every query is scoped by `req.user.id`.
+* `PATCH /api/notifications/:id/read` — Marks a notification as read. **Implemented:** `200 { unreadCount }`, `404` when the notification is unknown *or* belongs to someone else (deliberately indistinguishable).
 
 ### Client & Public area (`/api/client/*`)
 
 * `GET /api/client/farms` — Returns all farms with `APPROVED` status (`C1-F1`). **Implemented** (`backend/src/routes/client.ts`, public, no authentication).
 * `GET /api/client/farms/:id` — Details of an approved farm + its product list (`C1-F2`). **Implemented:** returns `404` if the farm does not exist or is not `APPROVED`.
-* `POST /api/client/baskets` — Creates a basket request (`C1-F3`, `C3-F3`). *Not implemented (T3.2).*
-* `GET /api/client/baskets` — Lists the connected client's baskets. *Not implemented (T3.3).*
-* `PATCH /api/client/baskets/:id/respond` — Accepts (`CONFIRMED`) or refuses (`REJECTED`) an offer (`C1-F4`). *Not implemented (T3.3).*
+* `POST /api/client/baskets` — Creates a basket request (`C1-F3`, `C3-F3`). **Implemented:** `201 { basket }`. The server never trusts client-supplied prices: it resolves each `productId` against the target farm and stores `unit_price_snapshot` itself. Errors: `400` (empty basket, duplicate product, quantity < 1 or > 999, more than 100 lines, unknown payment method, or a method the farm does not accept), `404` (unknown *or* non-approved farm — same answer), `401` (not a `CLIENT`).
+* `GET /api/client/baskets` — Lists the connected client's baskets, newest first. **Implemented.**
+* `PATCH /api/client/baskets/:id/respond` — Accepts (`CONFIRMED`) or refuses (`REJECTED`) an offer (`C1-F4`). **Implemented:** `200 { basket }`, `400` when `accept` is not a boolean, `404` for a foreign/unknown basket, `409 INVALID_TRANSITION` unless the basket is `OFFER_PROPOSED`.
 
 ### Producer area (`/api/farmer/*` — `FARMER` role required)
 
@@ -136,8 +158,8 @@ The token is signed with `JWT_SECRET` (mandatory when `NODE_ENV=production`, dev
 * `PUT /api/farmer/farm` — Updates the storefront (`C2-F4`). **Implemented:** `APPROVED` stays `APPROVED` (immediate publication); `REJECTED` **returns to `PENDING_APPROVAL`** to re-enter the validation queue; banner optional (the previous one is kept then deleted if replaced); the address is only re-geocoded when it has changed.
 * `POST /api/farmer/products` — Adds a product without stock (`C2-F3`). **Implemented:** `201 { product }`, `409` if the storefront does not exist yet.
 * `PUT /api/farmer/products/:id` & `DELETE /api/farmer/products/:id` — Modifies or deletes a product (`C2-F3`). **Implemented:** `404` if the product does not belong to the producer (isolation is achieved by joining on `farms.owner_id`).
-* `GET /api/farmer/baskets` — Lists the baskets received for their farm. *Not implemented (T3.4).*
-* `PATCH /api/farmer/baskets/:id/adjust` — Removes unavailable items, recalculates the total and submits the offer (`C2-F5`, `C3-F3`). *Not implemented (T3.4).*
+* `GET /api/farmer/baskets` — Lists the baskets received for their farm, newest first. **Implemented.**
+* `PATCH /api/farmer/baskets/:id/adjust` — Removes unavailable items, recalculates the total and submits the offer (`C2-F5`, `C3-F3`). **Implemented:** `200 { basket }`. The total is always recomputed server-side from the price snapshot; removed lines keep `removed_by_farmer = 1` so the client can see *what* was dropped instead of it silently vanishing. Removing **every** line yields `REJECTED` rather than an empty offer. Errors: `400` (invalid item id), `404` (foreign/unknown basket), `409 INVALID_TRANSITION` unless the basket is `PENDING_FARMER`.
 
 ### Administrator area (`/api/admin/*` — `ADMIN` role required)
 
@@ -148,6 +170,6 @@ The token is signed with `JWT_SECRET` (mandatory when `NODE_ENV=production`, dev
 
 ## 5. Frontend Component Structure (`frontend/src/`)
 
-* **Current structure:** `App.vue` (navbar + `<router-view>`), `router.ts` (4 routes), `auth.ts` (reactive store + `authHeaders`), `api.ts` (shared types + typed calls), `markdown.ts` (lazy-loaded Markdown preview). Views: `ClientView.vue` (MapLibre map + popups), `FarmView.vue` (farm details), `FarmerView.vue` (producer area), `AdminView.vue` (farm validation). Components: `FarmEditor.vue`, `ProductManager.vue`, `AuthModal.vue`.
-* **Layouts (not delivered):** `ClientLayout.vue` (map + bell + my baskets), `FarmerLayout.vue` (storefront/products/orders menu + bell), `AdminLayout.vue`. The 3 areas are currently 4 flat views plus a shared navbar.
-* **Shared components (not delivered):** `NotificationBell.vue`.
+* **Current structure:** `App.vue` (navbar + `<router-view>`), `router.ts` (6 routes), `auth.ts` (reactive store + `authHeaders`), `api.ts` (shared types + typed calls), `markdown.ts` (lazy-loaded Markdown preview). Views: `ClientView.vue` (MapLibre map + popups), `FarmView.vue` (farm details + basket composition), `MyBasketsView.vue` (client baskets, accept/refuse), `FarmerView.vue` (producer area), `ReceivedOrdersView.vue` (producer order handling), `AdminView.vue` (farm validation). Components: `FarmEditor.vue`, `ProductManager.vue`, `AuthModal.vue`.
+* **Layouts (not delivered):** `ClientLayout.vue` (map + bell + my baskets), `FarmerLayout.vue` (storefront/products/orders menu + bell), `AdminLayout.vue`. The areas are currently flat views plus a shared navbar.
+* **Shared components (not delivered):** `NotificationBell.vue`. The notification **backend** is complete (`C3-F2`): `GET /api/notifications` returns the list plus `unreadCount`, so the bell only needs to call it and render a dropdown.
