@@ -62,10 +62,14 @@ clientRouter.get('/farms/:id', (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
-// Baskets (`C1-F3`, `C1-F4`) — authenticated client only.
+// Baskets (`C1-F3`, `C1-F4`).
+//
+// Buying is **not** a role: any authenticated user may order, including a
+// producer or an administrator, because they also buy food. The only thing
+// forbidden is ordering from one's own farm (see `SELF_ORDER` below).
 // ---------------------------------------------------------------------------
 
-const requireClient = [requireAuth, requireRole('CLIENT')] as const;
+const requireUser = requireAuth;
 
 /**
  * Compose a basket request (`C1-F3`).
@@ -75,7 +79,7 @@ const requireClient = [requireAuth, requireRole('CLIENT')] as const;
  */
 clientRouter.post(
   '/baskets',
-  ...requireClient,
+  requireUser,
   asyncHandler((req: Request, res: Response) => {
     const body = req.body as Record<string, unknown>;
 
@@ -111,6 +115,12 @@ clientRouter.post(
         case 'INVALID_PRODUCT':
           badRequest(res, `Product ${outcome.productId} is not part of this farm's catalogue.`);
           return;
+        case 'SELF_ORDER':
+          res.status(409).json({
+            error: 'SELF_ORDER',
+            message: 'You cannot order from your own farm.',
+          });
+          return;
       }
     }
 
@@ -134,7 +144,7 @@ clientRouter.post(
 /** Baskets placed by the connected client (`C1-F4`). */
 clientRouter.get(
   '/baskets',
-  ...requireClient,
+  requireUser,
   asyncHandler((req: Request, res: Response) => {
     res.json({ baskets: listBasketsByClient(db, req.user!.id) });
   }),
@@ -143,7 +153,7 @@ clientRouter.get(
 /** Accept or refuse the producer's adjusted offer (`C1-F4`). */
 clientRouter.patch(
   '/baskets/:id/respond',
-  ...requireClient,
+  requireUser,
   asyncHandler((req: Request, res: Response) => {
     const basketId = parseId(req.params.id);
     if (basketId === undefined) {

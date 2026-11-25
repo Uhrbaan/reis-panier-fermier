@@ -241,7 +241,15 @@ export type CreateBasketOutcome =
   /** The chosen method is not enabled by this producer (`C2-F2`). */
   | { ok: false; reason: 'PAYMENT_METHOD_NOT_ACCEPTED' }
   /** At least one product is unknown or belongs to another farm. */
-  | { ok: false; reason: 'INVALID_PRODUCT'; productId: number };
+  | { ok: false; reason: 'INVALID_PRODUCT'; productId: number }
+  /**
+   * A producer tried to order from their own farm.
+   *
+   * Buying is not a role, so producers and administrators order like anyone
+   * else; ordering from yourself is the one combination that makes no sense
+   * (you would be negotiating a price with yourself).
+   */
+  | { ok: false; reason: 'SELF_ORDER' };
 
 /**
  * Persist a basket request and freeze its prices.
@@ -277,6 +285,11 @@ export function createBasket(
 
   if (!accepted.includes(paymentMethod)) {
     return { ok: false, reason: 'PAYMENT_METHOD_NOT_ACCEPTED' };
+  }
+
+  // Checked before touching any row, so the basket is never half-created.
+  if (farm.owner_id === clientId) {
+    return { ok: false, reason: 'SELF_ORDER' };
   }
 
   // Resolve every product against the target farm in one query: a product from

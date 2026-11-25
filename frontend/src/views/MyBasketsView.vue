@@ -13,7 +13,7 @@ import {
   respondToBasket,
   type Basket,
 } from "../api";
-import { currentRole, isAuthenticated } from "../auth";
+import { isAuthenticated } from "../auth";
 
 const router = useRouter();
 
@@ -24,7 +24,9 @@ const loadError = ref<string | null>(null);
 const busyId = ref<number | null>(null);
 const actionError = ref<string | null>(null);
 
-const canUseView = computed(() => isAuthenticated.value && currentRole.value === "CLIENT");
+// Buying is not a role: any signed-in user sees their own baskets, including
+// producers and administrators.
+const canUseView = computed(() => isAuthenticated.value);
 
 async function loadBaskets() {
   loading.value = true;
@@ -92,10 +94,9 @@ const statusClasses: Record<string, string> = {
       v-if="!canUseView"
       class="rounded border border-gray-300 bg-gray-50 p-4 text-sm text-gray-700"
     >
-      <p v-if="!isAuthenticated">Connectez-vous avec un compte client pour voir vos paniers.</p>
+      <p v-if="!isAuthenticated">Connectez-vous pour voir vos paniers.</p>
       <p v-else>
-        Cette page est réservée aux comptes clients. Vous êtes connecté en tant que
-        <strong>{{ currentRole }}</strong>.
+        Vos paniers apparaîtront ici.
       </p>
     </div>
 

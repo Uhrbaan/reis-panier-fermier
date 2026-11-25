@@ -8,7 +8,7 @@ import {
   type Farm,
   type PaymentMethod,
 } from "../api";
-import { currentRole, isAuthenticated } from "../auth";
+import { isAuthenticated } from "../auth";
 
 const route = useRoute();
 const router = useRouter();
@@ -69,8 +69,11 @@ const subtotal = computed(() =>
   basketLines.value.reduce((sum, line) => sum + line.lineTotal, 0)
 );
 
-/** A client must be signed in to order; the server enforces this too (`C1-F3`). */
-const canOrder = computed(() => isAuthenticated.value && currentRole.value === "CLIENT");
+/**
+ * Buying needs an account, not a particular role: producers and administrators
+ * buy food too. The server only refuses an order placed on one's own farm.
+ */
+const canOrder = computed(() => isAuthenticated.value);
 
 async function submitOrder() {
   if (!farm.value || basketLines.value.length === 0 || !selectedPayment.value) return;
@@ -78,9 +81,7 @@ async function submitOrder() {
   submitError.value = null;
 
   if (!canOrder.value) {
-    submitError.value = isAuthenticated.value
-      ? "Seul un compte client peut commander. Déconnectez-vous pour changer de compte."
-      : "Connectez-vous avec un compte client pour commander.";
+    submitError.value = "Connectez-vous pour commander.";
     return;
   }
 
