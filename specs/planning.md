@@ -79,21 +79,27 @@
 * [ ] **T4.3 (Dev A & B):** Configure `.github/workflows/ci.yml` to automatically run the tests and the PlantUML generation on every push.
 * [ ] **T4.4 (Dev A & B):** Finalise `specs/traceability.md`, `README.md` (including the AI usage declaration) and the PDF presentation (10–15 min).
 
-## Status notes as of 25 November 2026 (after `T3.2`–`T3.4`)
+## Status notes as of 25 November 2026 (after the guest-basket revision)
+
+**Design revision — three frictions removed:**
+
+1. **Buying is no longer a role** (`ADR-08`). Producers and administrators buy food too, so the basket routes require authentication only. Ordering from one's own farm is the one combination that makes no sense and is refused with `409 SELF_ORDER`.
+2. **No account is needed to order** (`ADR-09`). A guest basket carries a short public `reference` (`PF-7K3M9Q`) to quote to support and a 32-hex `access_token` that is the only key to the basket. The two are separate so that forwarding a link or reading a screen cannot expose someone else's basket. Accounts are now purely a convenience (history, notifications).
+3. **Every basket has a reference for disputes** (`C3-F5`). The reference is displayed to the client, the producer and the administrator, and `GET /api/admin/baskets/:reference` lets the admin identify the basket being reported.
+
+**Schema:** `baskets.client_id` is now nullable, with new `reference` and `access_token` columns. Because SQLite cannot drop `NOT NULL` in place, the table is rebuilt by a guarded migration; verified on a database built with the old schema (rows, items and notifications preserved, 0 orphans, FK enforcement restored) and idempotent across repeated boots.
 
 **Delivered:** backend foundation (SQLite schema + migration, seed, JWT, `requireAuth`/`requireRole`), **authentication** (`/api/auth/login`, `/register`, `/me` + `AuthModal.vue`), public endpoints `/api/client/farms[/:id]`, **producer endpoints `/api/farmer/*`** (storefront + catalogue, `owner_id` isolation), **admin endpoints `/api/admin/*`** and the **approval interface `AdminView.vue`** (`C3-F1`), server geocoding, banner upload, server-side sanitised Markdown rendering (`ADR-04`), map + farm details, producer interface.
 
-**Basket flow now complete end to end:** a client composes a basket (`C1-F3`) → the producer is notified (`C3-F2`) → removes an unavailable item and the total is recalculated server-side (`C2-F5`, `C3-F3`) → the client is notified and accepts or refuses (`C1-F4`). Removing every item rejects the request. Prices are frozen at request time, so later catalogue edits never rewrite history.
+**Basket flow now complete end to end:** a client (signed in **or** guest) composes a basket (`C1-F3`) → the producer is notified (`C3-F2`) → removes an unavailable item and the total is recalculated server-side (`C2-F5`, `C3-F3`) → the client is notified or returns via their access link and accepts or refuses (`C1-F4`). Removing every item rejects the request. Prices are frozen at request time.
 
-**Verified over real HTTP and in a headless browser:** 8 rejection paths (empty basket, duplicate product, quantity 0, unknown/unauthorised payment method, non-approved farm, unknown farm, unauthenticated), the adjust → accept loop, full-removal → `REJECTED`, cross-tenant isolation (foreign producer `404`, client on a farmer route `403`), double-transition `409`, notification scoping (foreign notification `404`), and the live total preview in the producer UI.
+**Verified over real HTTP and in a headless browser:** 8 rejection paths, the adjust → accept loop, full-removal → `REJECTED`, cross-tenant isolation, double-transition `409`, notification scoping, the live total preview, and the complete guest journey from a logged-out browser to a confirmed basket.
 
-**Demo data:** the seed now also creates 2 baskets (`PENDING_FARMER` 18.00 CHF, `OFFER_PROPOSED` 4.50 CHF with one line already removed) so both new views are non-empty on a fresh checkout.
+**Demo data:** the seed also creates 2 baskets so both basket views are non-empty on a fresh checkout.
 
 **Remaining blockers:**
-1. `T1.4` — `NotificationBell.vue` only. The backend is done and returns `unreadCount`.
-2. `T1.5` — the client interface is limited to the map, farm details and "Mes paniers" (no unified `ClientLayout.vue`).
+1. `T1.4` — `NotificationBell.vue` only. The backend is done and returns `unreadCount`. Note that a guest has no bell by definition, which is the intended trade-off.
+2. `T1.5` — the client interface is limited to the map, farm details, "Mes paniers" and the guest basket page (no unified `ClientLayout.vue`).
 3. `T4.1`–`T4.3` — no `tests/` directory, no CI workflow. **Outside the scope for now** (course bonus, to be handled on explicit request).
-
-**Note:** `specs/traceability.md` advertises test suites (`tests/…`) that do not exist; to be corrected before the final submission.
 
 **Naming inconsistency to fix:** `AGENTS.md` and `README.md` reference `specs/task-planning.md`, whereas the actual file is `specs/planning.md`.

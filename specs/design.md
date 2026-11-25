@@ -16,6 +16,8 @@
 5. **ADR-05 — Extensible notification service (Strategy / Observer Pattern):** The `NotificationService` class writes notifications into the `notifications` SQLite table (internal bell, `C3-F2`), while exposing a `NotificationChannel` interface allowing an e-mail channel (`EmailChannel`) to be registered later without modifying the order controllers.
 6. **ADR-06 — Unified lightweight authentication:** A single `users` table handles the three roles (`CLIENT`, `FARMER`, `ADMIN`) via JWT. No address or GPS field exists on `users` (`C1-NF1`).
 7. **ADR-07 — Server-side authorisation only:** `requireAuth` validates the JWT signature and expiry then **re-reads the user from the database** on every request (the role carried by the token is never treated as truth); `requireRole('FARMER' | 'ADMIN')` then restricts access. Vue Router guards are only a UI convenience and never constitute the security boundary. All producer writes are additionally filtered in SQL by `owner_id = req.user.id`.
+8. **ADR-08 — Buying is not a role:** placing a basket requires an authenticated user, not the `CLIENT` role. Producers and administrators buy food too, so gating checkout on `role = 'CLIENT'` was an artificial restriction. The single combination that makes no sense is ordering from one's own farm, which `createBasket` refuses with `SELF_ORDER` (`409`). `CLIENT` therefore remains a label for "registered to buy", not a permission.
+9. **ADR-09 — Guest baskets via reference + access token:** ordering does not require an account either (`C1-F3`). Requiring an e-mail address to buy is friction users do not expect, and nothing in the flow needs an identity, so an account becomes a convenience (order history, notifications) rather than a gate. A guest basket carries two values with different purposes: `reference` is short, public and quoted when contacting support (`C3-F5`); `access_token` is a 32-hex secret carried in the guest's access link and is the **only** thing that opens the basket. They are separate so that forwarding an e-mail or reading a screen cannot expose someone else's basket. Guest lookups with a wrong or missing token answer `404`, identical to an unknown reference, so the endpoint cannot be used to enumerate references. No e-mail is collected from guests: with no e-mail channel it would be personal data with no purpose.
 
 ## 3. SQLite Database Schema
 
@@ -57,11 +59,18 @@ CREATE TABLE products (
 
 CREATE TABLE baskets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  client_id INTEGER NOT NULL REFERENCES users(id),
+  -- NULL for a guest basket: ordering does not require an account (ADR-09).
+  client_id INTEGER REFERENCES users(id),
   farm_id INTEGER NOT NULL REFERENCES farms(id),
   payment_method TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'PENDING_FARMER' CHECK(status IN ('PENDING_FARMER', 'OFFER_PROPOSED', 'CONFIRMED', 'REJECTED')),
   total_amount REAL NOT NULL DEFAULT 0,
+  -- Short public reference quoted when contacting support about a dispute
+  -- (C3-F5). It is NOT a secret: it cannot open the basket on its own.
+  reference TEXT,
+  -- Secret capability carried in a guest's access link. NULL for baskets
+  -- owned by an account, which are reached via client_id.
+  access_token TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -125,11 +134,14 @@ The token is signed with `JWT_SECRET` (mandatory when `NODE_ENV=production`, dev
 
 | Transition | Endpoint | Allowed from | Result |
 | :--- | :--- | :--- | :--- |
-| create | `POST /api/client/baskets` | — | `PENDING_FARMER` |
+| create | `POST /api/client/baskets` | — | `PENDING_FARMER` (account **or** guest) |
 | adjust | `PATCH /api/farmer/baskets/:id/adjust` | `PENDING_FARMER` | `OFFER_PROPOSED`, or `REJECTED` if no line survives |
-| accept / refuse | `PATCH /api/client/baskets/:id/respond` | `OFFER_PROPOSED` | `CONFIRMED` / `REJECTED` |
+| accept / refuse | `PATCH /api/client/baskets/:id/respond` | `OFFER_PROPOSED` | `CONFIRMED` / `REJECTED` (account) |
+| accept / refuse (guest) | `PATCH /api/client/baskets/:reference/respond` | `OFFER_PROPOSED` | `CONFIRMED` / `REJECTED` (token) |
 
 Any other transition answers `409 INVALID_TRANSITION`. The guard is implemented in the SQL `WHERE` clause rather than in a read-then-write sequence, so two concurrent adjustments cannot both succeed.
+
+**Schema migration (`ADR-09`).** Relaxing `baskets.client_id` to nullable cannot be done with `ALTER TABLE` in SQLite, so `db.ts` rebuilds the table (`foreign_keys = OFF` → copy → rename → `PRAGMA foreign_key_check` → `ON`). It is guarded by a column check and therefore runs at most once per database. The unique indexes on `reference`/`access_token` are created **after** the migration, because on a pre-guest database those columns do not exist when `SCHEMA_SQL` runs.
 
 ### Authentication & Notifications (All roles)
 
@@ -145,9 +157,11 @@ Any other transition answers `409 INVALID_TRANSITION`. The guard is implemented 
 
 * `GET /api/client/farms` — Returns all farms with `APPROVED` status (`C1-F1`). **Implemented** (`backend/src/routes/client.ts`, public, no authentication).
 * `GET /api/client/farms/:id` — Details of an approved farm + its product list (`C1-F2`). **Implemented:** returns `404` if the farm does not exist or is not `APPROVED`.
-* `POST /api/client/baskets` — Creates a basket request (`C1-F3`, `C3-F3`). **Implemented:** `201 { basket }`. The server never trusts client-supplied prices: it resolves each `productId` against the target farm and stores `unit_price_snapshot` itself. Errors: `400` (empty basket, duplicate product, quantity < 1 or > 999, more than 100 lines, unknown payment method, or a method the farm does not accept), `404` (unknown *or* non-approved farm — same answer), `401` (not a `CLIENT`).
-* `GET /api/client/baskets` — Lists the connected client's baskets, newest first. **Implemented.**
+* `POST /api/client/baskets` — Creates a basket request (`C1-F3`, `C3-F3`). **Implemented:** `201 { basket, reference, accessToken? }`. **Authentication is optional:** with a valid token the basket belongs to the account; without one a guest basket is created and `accessToken` is returned **exactly once**. The server never trusts client-supplied prices: it resolves each `productId` against the target farm and stores `unit_price_snapshot` itself. Errors: `400` (empty basket, duplicate product, quantity < 1 or > 999, more than 100 lines, unknown payment method, or a method the farm does not accept), `404` (unknown *or* non-approved farm — same answer), `409 SELF_ORDER` (a producer ordering from their own farm, `ADR-08`).
+* `GET /api/client/baskets` — Lists the baskets of the connected user, newest first (`requireAuth`, any role). **Implemented.**
+* `GET /api/client/baskets/:reference?token=…` — Reads a **guest** basket (`C1-F4`). **Implemented:** the token may also be sent as `X-Basket-Token`. `404` for an unknown reference, a wrong token, or a basket that belongs to an account — all indistinguishable, so the endpoint cannot enumerate references.
 * `PATCH /api/client/baskets/:id/respond` — Accepts (`CONFIRMED`) or refuses (`REJECTED`) an offer (`C1-F4`). **Implemented:** `200 { basket }`, `400` when `accept` is not a boolean, `404` for a foreign/unknown basket, `409 INVALID_TRANSITION` unless the basket is `OFFER_PROPOSED`.
+* `PATCH /api/client/baskets/:reference/respond` — Same decision for a **guest** basket, authorised by the access token instead of a session. **Implemented.**
 
 ### Producer area (`/api/farmer/*` — `FARMER` role required)
 
@@ -166,6 +180,7 @@ Any other transition answers `409 INVALID_TRANSITION`. The guard is implemented 
 **Implementation:** `backend/src/routes/admin.ts` (deliberately minimal for now).
 
 * `GET /api/admin/farms/pending` — Lists farms with `PENDING_APPROVAL` status, oldest first (`C3-F1`). **Implemented.**
+* `GET /api/admin/baskets/:reference` — Identifies the basket a client is quoting during a dispute (`C3-F5`). **Implemented:** returns the basket with its account-or-guest identity and status; `400` for a malformed reference, `404` for an unknown one. Read-only on purpose: arbitration stays off-platform, and letting the administrator answer *as* the client would blur who agreed to what.
 * `PATCH /api/admin/farms/:id/status` — Approves (`APPROVED`) or rejects (`REJECTED`) a farm (`C3-F1`). **Implemented:** only those two transitions are accepted (`400` otherwise), `404` if the id is unknown.
 
 ## 5. Frontend Component Structure (`frontend/src/`)
